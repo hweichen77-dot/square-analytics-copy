@@ -74,9 +74,11 @@ export function productTrend(stats: ProductStats): SalesTrend {
 }
 
 export function productVelocity(stats: ProductStats): number {
-  const activeDays = Object.values(stats.dailySales).filter(v => v > 0).length
-  if (!activeDays) return 0
-  return stats.totalUnitsSold / activeDays
+  const spanDays = Math.max(
+    (stats.lastSoldDate.getTime() - stats.firstSoldDate.getTime()) / 86_400_000 + 1,
+    7,
+  )
+  return stats.totalUnitsSold / spanDays
 }
 
 export function isSlowMover(stats: ProductStats): boolean {

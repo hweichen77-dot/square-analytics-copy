@@ -49,14 +49,9 @@ function computeAlerts(
 ): RestockAlert[] {
   if (!transactions.length) return []
 
-  const activeDays = new Set(transactions.map(tx => startOfDay(tx.date).getTime()))
-  const totalActiveDays = Math.max(activeDays.size, 1)
-  const sortedDays = Array.from(activeDays).sort()
-  const firstDay = sortedDays[0]
-  const lastDay = sortedDays[sortedDays.length - 1]
-  const calendarDaySpan = (lastDay - firstDay) / 86_400_000
+  const sortedDays = Array.from(new Set(transactions.map(tx => startOfDay(tx.date).getTime()))).sort()
+  const calendarDaySpan = sortedDays.length > 1 ? (sortedDays[sortedDays.length - 1] - sortedDays[0]) / 86_400_000 : 7
   const calendarWeeks = Math.max(calendarDaySpan / 7, 1)
-  const activeDaysPerWeek = totalActiveDays / calendarWeeks
 
   const stats = computeProductStats(transactions)
 
@@ -75,8 +70,8 @@ function computeAlerts(
   const alerts: RestockAlert[] = []
 
   for (const product of stats) {
-    const velocity = product.totalUnitsSold / Math.max(Object.values(product.dailySales).filter(v => v > 0).length, 1)
-    const weeklyVelocity = velocity * Math.max(activeDaysPerWeek, 1)
+    const weeklyVelocity = product.totalUnitsSold / calendarWeeks
+    const dailyVelocity = weeklyVelocity / 7
 
     let stockRemaining: number | null = null
     let daysUntilStockout: number | null = null
@@ -90,27 +85,20 @@ function computeAlerts(
       lastRestockedQuantity = log.quantity
       const restockDay = startOfDay(log.date).getTime()
       const soldAfter = Object.entries(product.dailySales)
-        .filter(([key]) => {
-          const d = new Date(key).getTime()
-          return d > restockDay
-        })
+        .filter(([key]) => new Date(key).getTime() > restockDay)
         .reduce((s, [, v]) => s + v, 0)
       const remaining = log.quantity - soldAfter
       stockRemaining = remaining
-      if (remaining > 0 && velocity > 0) {
-        const activeDaysLeft = remaining / velocity
-        daysUntilStockout = activeDaysLeft
-        const calendarDaysLeft = (activeDaysLeft / Math.max(activeDaysPerWeek, 1)) * 7
-        projectedStockoutDate = new Date(today.getTime() + calendarDaysLeft * 86_400_000)
+      if (remaining > 0 && dailyVelocity > 0) {
+        daysUntilStockout = remaining / dailyVelocity
+        projectedStockoutDate = new Date(today.getTime() + daysUntilStockout * 86_400_000)
       }
     } else if (catalogueQty[product.name] !== undefined) {
       const qty = catalogueQty[product.name]
       stockRemaining = qty
-      if (qty > 0 && velocity > 0) {
-        const activeDaysLeft = qty / velocity
-        daysUntilStockout = activeDaysLeft
-        const calendarDaysLeft = (activeDaysLeft / Math.max(activeDaysPerWeek, 1)) * 7
-        projectedStockoutDate = new Date(today.getTime() + calendarDaysLeft * 86_400_000)
+      if (qty > 0 && dailyVelocity > 0) {
+        daysUntilStockout = qty / dailyVelocity
+        projectedStockoutDate = new Date(today.getTime() + daysUntilStockout * 86_400_000)
       }
     }
 
