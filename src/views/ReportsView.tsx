@@ -41,14 +41,16 @@ function ExportBar({ onPDF, onCSV, loading }: { onPDF: () => void; onCSV: () => 
         disabled={loading}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-slate-600 rounded-lg text-slate-400 hover:bg-slate-700/50 disabled:opacity-40"
       >
-        ⬇ CSV
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        CSV
       </button>
       <button
         onClick={onPDF}
         disabled={loading}
         className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-600 disabled:opacity-40"
       >
-        ⬇ PDF
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF
       </button>
     </div>
   )
@@ -683,13 +685,13 @@ function MonthlyDetailReportView({ report }: { report: Extract<AnyReport, { type
       {/* Inventory suggestions */}
       {suggestions.length > 0 && (
         <div className="bg-teal-500/10 border border-teal-500/30 rounded-xl p-5">
-          <p className="text-sm font-semibold text-indigo-800 mb-3">
+          <p className="text-sm font-semibold text-teal-300 mb-3">
             Inventory Suggestions for {selectedRow ? format(parseISO(selectedRow.month + '-01'), 'MMMM') : 'Next Month'}
           </p>
           <ul className="space-y-2.5">
             {suggestions.map((tip, i) => (
-              <li key={i} className="flex gap-2.5 text-sm text-indigo-900">
-                <span className="mt-0.5 shrink-0 text-indigo-400">→</span>
+              <li key={i} className="flex gap-2.5 text-sm text-slate-300">
+                <span className="mt-0.5 shrink-0 text-teal-400">→</span>
                 <span dangerouslySetInnerHTML={{ __html: escapeHtml(tip).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
               </li>
             ))}
@@ -1070,7 +1072,7 @@ export default function ReportsView() {
       {generating && (
         <div className="flex items-center justify-center py-20 text-slate-500">
           <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-slate-700 border-t-teal-400 rounded-full animate-spin" />
             <span className="text-sm">Building report…</span>
           </div>
         </div>

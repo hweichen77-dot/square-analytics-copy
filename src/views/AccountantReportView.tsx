@@ -246,7 +246,7 @@ export default function AccountantReportView() {
               <div key={p.method} className="flex items-center gap-3 py-1.5 border-b border-slate-700/50 last:border-0">
                 <span className="text-sm text-slate-300 flex-1">{p.method}</span>
                 <div className="w-24 bg-slate-800 rounded-full h-1.5">
-                  <div className="h-1.5 rounded-full bg-indigo-400" style={{ width: `${Math.min(p.pct, 100)}%` }} />
+                  <div className="h-1.5 rounded-full bg-teal-400" style={{ width: `${Math.min(p.pct, 100)}%` }} />
                 </div>
                 <span className="text-xs text-slate-500 w-10 text-right">{p.pct.toFixed(0)}%</span>
                 <span className="text-sm font-medium text-slate-100 w-24 text-right">{formatCurrency(p.revenue)}</span>

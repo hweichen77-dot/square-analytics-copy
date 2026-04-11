@@ -289,7 +289,7 @@ export default function DeadStockView() {
                 {chartData.map((item, i) => (
                   <Cell
                     key={i}
-                    fill={item.tier === 'Dead' ? '#ef4444' : item.tier === 'Dying' ? '#f97316' : '#6366f1aa'}
+                    fill={item.tier === 'Dead' ? '#ef4444' : item.tier === 'Dying' ? '#f97316' : '#14B8A6aa'}
                   />
                 ))}
               </Bar>

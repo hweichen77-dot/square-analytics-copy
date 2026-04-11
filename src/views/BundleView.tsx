@@ -356,7 +356,7 @@ export default function BundleView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {savedBundles.map(bundle => (
-              <div key={bundle.id} className="border border-indigo-100 rounded-xl p-4">
+              <div key={bundle.id} className="border border-slate-700 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-semibold text-sm text-slate-100">{bundle.name}</p>
                   <div className="flex gap-2">

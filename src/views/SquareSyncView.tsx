@@ -247,7 +247,7 @@ export default function SquareSyncView() {
           </div>
           {syncing && syncStatus && (
             <div className="flex items-center gap-2 text-sm text-slate-500">
-              <div className="w-3.5 h-3.5 border-2 border-slate-600 border-t-indigo-500 rounded-full animate-spin shrink-0" />
+              <div className="w-3.5 h-3.5 border-2 border-slate-600 border-t-teal-400 rounded-full animate-spin shrink-0" />
               {syncStatus.message}
             </div>
           )}

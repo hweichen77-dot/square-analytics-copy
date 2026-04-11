@@ -121,7 +121,7 @@ export default function ForecastView() {
             <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} width={48} />
             <Tooltip formatter={(v: number) => formatCurrency(v)} />
             <Bar dataKey="actual" name="Actual" fill="#14B8A6" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="projected" name="Forecast" fill="#c7d2fe" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="projected" name="Forecast" fill="#5eead4" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -141,7 +141,7 @@ export default function ForecastView() {
             <Tooltip formatter={(v: number) => formatCurrency(v)} />
             <Bar dataKey="projected" name="Forecast" radius={[3, 3, 0, 0]}>
               {nextWeekData.map((_, i) => (
-                <Cell key={i} fill="#a5b4fc" />
+                <Cell key={i} fill="#5eead4" />
               ))}
             </Bar>
           </BarChart>

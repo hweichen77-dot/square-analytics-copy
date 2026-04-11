@@ -163,7 +163,7 @@ export default function StaffShiftView() {
             <Bar dataKey={d => metricValue(d)} radius={[0, 3, 3, 0]}
               label={{ position: 'right', formatter: (v: number) => metricLabel(v), fontSize: 10, fill: '#64748B' }}>
               {chartData.map((p, i) => (
-                <Cell key={i} fill={p.name === selectedStaff ? '#4f46e5' : '#6366f180'} />
+                <Cell key={i} fill={p.name === selectedStaff ? '#0d9488' : '#14B8A660'} />
               ))}
             </Bar>
           </BarChart>

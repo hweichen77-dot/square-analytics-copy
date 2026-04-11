@@ -241,7 +241,7 @@ export default function SeasonalView() {
               <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
               <YAxis tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
               <Tooltip formatter={(v: number) => formatCurrency(v)} />
-              <Area type="monotone" dataKey="revenue" fill="#6366f120" stroke="#14B8A6" strokeWidth={1.5} dot={false} />
+              <Area type="monotone" dataKey="revenue" fill="#14B8A620" stroke="#14B8A6" strokeWidth={1.5} dot={false} />
               {events.map(event => (
                 <ReferenceLine
                   key={`${event.id}-start`}

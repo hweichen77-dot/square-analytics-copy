@@ -11,7 +11,7 @@ type Filter = 'all' | 'above' | 'below'
 function SeverityBadge({ severity }: { severity: 'mild' | 'strong' }) {
   return severity === 'strong'
     ? <span className="px-1.5 py-0.5 text-xs font-medium bg-red-500/15 text-red-400 rounded">Strong</span>
-    : <span className="px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-400 rounded">Mild</span>
+    : <span className="px-1.5 py-0.5 text-xs font-medium bg-amber-500/15 text-amber-400 rounded">Mild</span>
 }
 
 function AnomalyRow({ anomaly }: { anomaly: AnomalyDay }) {
