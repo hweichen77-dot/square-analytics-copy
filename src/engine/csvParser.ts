@@ -116,6 +116,8 @@ export function parseCSVContent(content: string): CSVParseResult {
                             'Served By', 'Sales Person', 'Salesperson', 'Associate', 'Operator', 'Seller')
     const description = get('Description', 'Item Name', 'Items', 'Line Items', 'Item', 'Product')
     const txID        = get('Transaction ID', 'Payment ID', 'Order ID', 'Receipt Number', 'Receipt No')
+    const customerID  = get('Customer ID', 'Customer Reference ID')
+    const customerName = get('Customer Name', 'Customer')
 
     // ── Payment method detection ────────────────────────────────────────────
     // Square CSV has dedicated tender columns (dollar amounts):
@@ -151,7 +153,7 @@ export function parseCSVContent(content: string): CSVParseResult {
 
     const netSales = parseCurrency(netSalesStr)
 
-    transactions.push({
+    const tx: Omit<SalesTransaction, 'id'> = {
       transactionID: txID || generateFallbackID(rows[i], i),
       date,
       netSales,
@@ -160,7 +162,10 @@ export function parseCSVContent(content: string): CSVParseResult {
       itemDescription: description.trim(),
       dayOfWeek: date.getDay() + 1,
       hour: date.getHours(),
-    })
+    }
+    if (customerID) tx.customerID = customerID
+    if (customerName) tx.customerName = customerName.trim()
+    transactions.push(tx)
   }
 
   return { transactions, skipped, schemaError: null }
