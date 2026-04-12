@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAllTransactions, useCatalogueProducts, useStoreEvents } from '../db/useTransactions'
 import { generatePurchaseOrder } from '../engine/purchaseOrderEngine'
+import { computeProductStats } from '../engine/analyticsEngine'
 import { EmptyState } from '../components/ui/EmptyState'
 import { formatCurrency } from '../utils/format'
 import type { PurchaseOrderItem } from '../engine/purchaseOrderEngine'
@@ -103,6 +104,19 @@ export default function PurchaseOrderView() {
   const [sortDesc, setSortDesc] = useState(true)
 
   const overrides = useMemo(() => ({}), [])
+
+  // Pre-generate velocity preview (top items by weekly velocity)
+  const { velocityPreview, totalProductCount } = useMemo(() => {
+    const stats = computeProductStats(transactions)
+    return {
+      totalProductCount: stats.length,
+      velocityPreview: stats.slice(0, 8).map(p => ({
+        name: p.name,
+        weeklyVelocity: p.avgDailyVelocity * 7,
+        revenue: p.totalRevenue,
+      })),
+    }
+  }, [transactions])
 
   const orderItems = useMemo(
     () => generated ? generatePurchaseOrder(transactions, events, [], overrides, selectedWeeks) : [],
@@ -219,6 +233,74 @@ export default function PurchaseOrderView() {
           </p>
         </div>
       </div>
+
+      {/* ── Pre-generate velocity preview ── */}
+      {!generated && velocityPreview.length > 0 && (
+        <div className="space-y-4">
+          {/* Quick stat strip */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Products Tracked</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">{totalProductCount}</p>
+              <p className="text-xs text-slate-500 mt-0.5">in transaction history</p>
+            </div>
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Top Velocity Item</p>
+              <p className="text-sm font-bold text-teal-400 mt-1 truncate">{velocityPreview[0]?.name ?? '—'}</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {velocityPreview[0] ? `${velocityPreview[0].weeklyVelocity.toFixed(1)} units/wk` : ''}
+              </p>
+            </div>
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+              <p className="text-xs text-slate-500">Projected Units ({selectedWeeks}wk)</p>
+              <p className="text-2xl font-bold text-slate-100 mt-1">
+                {velocityPreview.reduce((s, p) => s + Math.ceil(p.weeklyVelocity * selectedWeeks), 0)}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">top 8 items combined</p>
+            </div>
+          </div>
+
+          {/* Top items velocity preview */}
+          <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-slate-200">Velocity Preview</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Top 8 items by weekly sales — likely candidates for reorder</p>
+              </div>
+              <span className="text-xs text-slate-500 bg-slate-700/50 px-2 py-1 rounded-lg">
+                {selectedWeeks}-week window
+              </span>
+            </div>
+            <div className="divide-y divide-slate-700/30">
+              {velocityPreview.map((item, i) => {
+                const maxVel = velocityPreview[0].weeklyVelocity
+                const barWidth = maxVel > 0 ? (item.weeklyVelocity / maxVel) * 100 : 0
+                const projectedQty = Math.ceil(item.weeklyVelocity * selectedWeeks)
+                return (
+                  <div key={item.name} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-700/20 transition-colors">
+                    <span className="text-sm font-bold text-slate-600 w-5 shrink-0">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-200 truncate">{item.name}</p>
+                      <div className="mt-1.5 h-1.5 bg-slate-700 rounded-full overflow-hidden w-full">
+                        <div className="h-full rounded-full bg-teal-500/60" style={{ width: `${barWidth}%` }} />
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 min-w-[100px]">
+                      <p className="text-sm font-semibold text-slate-100">{item.weeklyVelocity.toFixed(1)} <span className="text-xs font-normal text-slate-500">/wk</span></p>
+                      <p className="text-xs text-slate-500">~{projectedQty} units for {selectedWeeks}wk</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="px-5 py-3 bg-slate-900/40 border-t border-slate-700/50">
+              <p className="text-xs text-slate-500">
+                Click <span className="text-teal-400 font-medium">Generate Report</span> above to build the full order with seasonal adjustments, low-stock flags, and XLSX export.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Report content (only after Generate is clicked) ── */}
       {generated && (

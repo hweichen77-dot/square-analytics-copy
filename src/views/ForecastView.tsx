@@ -4,6 +4,7 @@ import {
 } from 'recharts'
 import { useAllTransactions } from '../db/useTransactions'
 import { computeForecast } from '../engine/forecastEngine'
+import { computeProductStats } from '../engine/analyticsEngine'
 import { EmptyState } from '../components/ui/EmptyState'
 import { formatCurrency } from '../utils/format'
 import { format } from 'date-fns'
@@ -47,6 +48,23 @@ export default function ForecastView() {
   }
 
   const { thisWeek, nextWeek, trendLabel } = forecast
+
+  // Forecast accuracy: compare projected vs actual for elapsed days this week
+  const accuracyData = useMemo(() => {
+    const elapsedDays = thisWeek.days.filter(d => d.actualRevenue !== null)
+    if (elapsedDays.length === 0) return null
+    const totalProjected = elapsedDays.reduce((s, d) => s + d.projectedRevenue, 0)
+    const totalActual = elapsedDays.reduce((s, d) => s + (d.actualRevenue ?? 0), 0)
+    const accuracyPct = totalProjected > 0 ? Math.min(200, (totalActual / totalProjected) * 100) : 0
+    const diff = totalActual - totalProjected
+    return { accuracyPct, diff, elapsedDays: elapsedDays.length, totalActual, totalProjected }
+  }, [thisWeek])
+
+  // Top 5 products by velocity (avg daily revenue)
+  const topProducts = useMemo(() => {
+    const stats = computeProductStats(transactions)
+    return stats.slice(0, 5)
+  }, [transactions])
 
   // Progress through this week
   const daysWithData = thisWeek.days.filter(d => d.actualRevenue !== null).length
@@ -147,6 +165,74 @@ export default function ForecastView() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Accuracy + stats row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Forecast accuracy card */}
+        {accuracyData && (
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+            <p className="text-xs text-slate-500 font-medium mb-1">Forecast Accuracy (This Week)</p>
+            <p className={`text-3xl font-bold tabular-nums ${accuracyData.accuracyPct >= 90 ? 'text-emerald-400' : accuracyData.accuracyPct >= 70 ? 'text-amber-400' : 'text-red-400'}`}>
+              {accuracyData.accuracyPct.toFixed(0)}%
+            </p>
+            <p className="text-xs text-slate-500 mt-1">
+              {accuracyData.elapsedDays} day{accuracyData.elapsedDays !== 1 ? 's' : ''} elapsed ·{' '}
+              <span className={accuracyData.diff >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                {accuracyData.diff >= 0 ? '+' : ''}{formatCurrency(accuracyData.diff)} vs projected
+              </span>
+            </p>
+          </div>
+        )}
+
+        {/* Next week projected */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <p className="text-xs text-slate-500 font-medium mb-1">Next Week Projection</p>
+          <p className="text-3xl font-bold tabular-nums text-teal-400">{formatCurrency(nextWeek.projectedTotal)}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            {format(nextWeek.weekStart, 'MMM d')} – {format(new Date(nextWeek.weekStart.getTime() + 6 * 86_400_000), 'MMM d')}
+          </p>
+        </div>
+
+        {/* Weeks of data */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+          <p className="text-xs text-slate-500 font-medium mb-1">History Used</p>
+          <p className="text-3xl font-bold tabular-nums text-slate-200">{forecast.weeksOfHistory}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            complete week{forecast.weeksOfHistory !== 1 ? 's' : ''} · up to 12 used for baseline
+          </p>
+        </div>
+      </div>
+
+      {/* Top 5 products by demand */}
+      {topProducts.length > 0 && (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-700/50">
+            <h2 className="font-semibold text-slate-200">Top Products by Demand</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Highest-velocity items — expect continued strong demand</p>
+          </div>
+          <div className="divide-y divide-slate-700/30">
+            {topProducts.map((p, i) => {
+              const maxRev = topProducts[0].totalRevenue
+              const barWidth = maxRev > 0 ? (p.totalRevenue / maxRev) * 100 : 0
+              return (
+                <div key={p.name} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-700/20 transition-colors">
+                  <span className="text-sm font-bold text-slate-600 w-5 shrink-0">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-200 truncate">{p.name}</p>
+                    <div className="mt-1 h-1.5 bg-slate-700 rounded-full overflow-hidden w-full">
+                      <div className="h-full rounded-full bg-teal-500/60" style={{ width: `${barWidth}%` }} />
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-slate-100">{formatCurrency(p.totalRevenue)}</p>
+                    <p className="text-xs text-slate-500">{p.totalUnitsSold} units</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <p className="text-xs text-slate-500">
         Forecast uses day-of-week averages from up to 12 weeks of history, adjusted by a trend factor computed from the last 8 weeks.
