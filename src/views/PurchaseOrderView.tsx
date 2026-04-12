@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAllTransactions, useCatalogueProducts, useStoreEvents } from '../db/useTransactions'
 import { generatePurchaseOrder } from '../engine/purchaseOrderEngine'
-import { computeProductStats } from '../engine/analyticsEngine'
+import { computeProductStats, productVelocity } from '../engine/analyticsEngine'
 import { EmptyState } from '../components/ui/EmptyState'
 import { formatCurrency } from '../utils/format'
 import type { PurchaseOrderItem } from '../engine/purchaseOrderEngine'
@@ -108,11 +108,12 @@ export default function PurchaseOrderView() {
   // Pre-generate velocity preview (top items by weekly velocity)
   const { velocityPreview, totalProductCount } = useMemo(() => {
     const stats = computeProductStats(transactions)
+    const sorted = [...stats].sort((a, b) => productVelocity(b) - productVelocity(a))
     return {
       totalProductCount: stats.length,
-      velocityPreview: stats.slice(0, 8).map(p => ({
+      velocityPreview: sorted.slice(0, 8).map(p => ({
         name: p.name,
-        weeklyVelocity: p.avgDailyVelocity * 7,
+        weeklyVelocity: productVelocity(p) * 7,
         revenue: p.totalRevenue,
       })),
     }
