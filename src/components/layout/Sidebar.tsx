@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useTransactionCount } from '../../db/useTransactions'
+import { useRestockAlertCount } from '../../hooks/useRestockAlertCount'
 
 // Inline SVG icon components — no external dependencies
 function Icon({ path, path2 }: { path: string; path2?: string }) {
@@ -102,7 +103,7 @@ const BOTTOM_ITEMS: NavItem[] = [
   { label: 'Square Sync',      path: '/square-sync',     iconKey: 'sync' },
 ]
 
-function NavItemFull({ item }: { item: NavItem }) {
+function NavItemFull({ item, badge }: { item: NavItem; badge?: number }) {
   return (
     <NavLink
       to={item.path}
@@ -115,13 +116,19 @@ function NavItemFull({ item }: { item: NavItem }) {
       }
     >
       {ICONS[item.iconKey]}
-      <span className="truncate">{item.label}</span>
+      <span className="truncate flex-1">{item.label}</span>
+      {badge != null && badge > 0 && (
+        <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </NavLink>
   )
 }
 
 export default function Sidebar() {
   const txCount = useTransactionCount()
+  const restockAlertCount = useRestockAlertCount()
 
   return (
     <aside className="w-52 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col h-full">
@@ -148,7 +155,11 @@ export default function Sidebar() {
               </p>
             )}
             {section.items.map(item => (
-              <NavItemFull key={item.path} item={item} />
+              <NavItemFull
+                key={item.path}
+                item={item}
+                badge={item.path === '/restock' ? restockAlertCount : undefined}
+              />
             ))}
           </div>
         ))}
