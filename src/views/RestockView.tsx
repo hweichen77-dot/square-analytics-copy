@@ -76,9 +76,8 @@ function computeAlerts(
   const alerts: RestockAlert[] = []
 
   for (const product of stats) {
-    // Per-product span — matches analyticsEngine.productVelocity() formula.
-    // Using global dataset span would underestimate velocity for newly-introduced products.
-    const spanDays = (product.lastSoldDate.getTime() - product.firstSoldDate.getTime()) / 86_400_000
+    // Span from first sale to today — counts quiet weeks so a burst doesn't inflate velocity.
+    const spanDays = (today.getTime() - product.firstSoldDate.getTime()) / 86_400_000
     const weeksSpan = Math.max(1, spanDays / 7)
     const weeklyVelocity = product.totalUnitsSold / weeksSpan
     const dailyVelocity = weeklyVelocity / 7

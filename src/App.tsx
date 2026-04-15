@@ -27,6 +27,7 @@ const ForecastView          = lazy(() => import('./views/ForecastView'))
 const AnomalyView           = lazy(() => import('./views/AnomalyView'))
 const BasketAnalysisView    = lazy(() => import('./views/BasketAnalysisView'))
 const AccountantReportView  = lazy(() => import('./views/AccountantReportView'))
+const OpexView              = lazy(() => import('./views/OpexView'))
 
 function PageFallback() {
   return (
@@ -124,6 +125,7 @@ export default function App() {
               <Route path="/anomalies" element={<AnomalyView />} />
               <Route path="/basket-analysis" element={<BasketAnalysisView />} />
               <Route path="/accountant-report" element={<AccountantReportView />} />
+              <Route path="/opex" element={<OpexView />} />
             </Routes>
           </Suspense>
         </div>

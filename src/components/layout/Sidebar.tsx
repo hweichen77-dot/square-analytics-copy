@@ -94,6 +94,12 @@ const NAV_SECTIONS: { heading?: string; items: NavItem[] }[] = [
       { label: 'Catalogue Products',  path: '/catalogue-products',iconKey: 'folder' },
     ],
   },
+  {
+    heading: 'Finance',
+    items: [
+      { label: 'Operating Expenses',  path: '/opex',              iconKey: 'receipt' },
+    ],
+  },
 ]
 
 const BOTTOM_ITEMS: NavItem[] = [

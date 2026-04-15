@@ -10,6 +10,35 @@ export interface SalesTransaction {
   hour: number
   customerID?: string
   customerName?: string
+  // Square financial detail columns (populated when CSV has them)
+  grossSales?: number
+  discounts?: number
+  serviceCharges?: number
+  partialRefunds?: number
+  totalCollected?: number
+  fees?: number        // negative in Square CSV (e.g. -0.27); stored as-is
+  netTotal?: number    // totalCollected + fees
+}
+
+export const OPEX_CATEGORIES = [
+  'Store Equipment',
+  'Marketing',
+  'Misc',
+  'Employee Expenses',
+  'Gift Cards',
+  'Service Charge',
+  'Other',
+] as const
+
+export type OpexCategory = typeof OPEX_CATEGORIES[number]
+
+export interface OpexEntry {
+  id?: number
+  name: string
+  category: OpexCategory | string
+  amount: number
+  month: string   // 'yyyy-MM'
+  notes?: string
 }
 
 export interface CategoryOverride {

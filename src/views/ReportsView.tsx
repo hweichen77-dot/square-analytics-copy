@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/database'
 import { format, subDays, parseISO, isValid } from 'date-fns'
 import {
   AreaChart, Area,
@@ -583,7 +585,55 @@ function buildInventorySuggestions(row: Extract<AnyReport, { type: 'monthly-deta
   return tips
 }
 
-function MonthlyDetailReportView({ report }: { report: Extract<AnyReport, { type: 'monthly-detail' }> }) {
+// ─── Income statement ledger helpers ─────────────────────────────────────────
+
+function LedgerSection({ label }: { label: string }) {
+  return (
+    <div className="px-4 py-2 bg-slate-900/60 border-t border-slate-700">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{label}</span>
+    </div>
+  )
+}
+
+function LedgerRow({ label, value, sub, indent = false }: { label: string; value: string; sub?: string; indent?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between px-4 py-2.5 border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors ${indent ? 'pl-7' : ''}`}>
+      <span className="text-sm text-slate-400">{label}</span>
+      <div className="text-right">
+        <span className="text-sm font-mono text-slate-300">{value}</span>
+        {sub && <p className="text-[11px] text-slate-600 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+function LedgerSubtotal({ label, value, sub, color = 'teal' }: { label: string; value: string; sub?: string; color?: 'teal' | 'emerald' | 'amber' }) {
+  const colors = {
+    teal:    'bg-teal-500/8 border-t-2 border-teal-500/30 text-teal-300',
+    emerald: 'bg-emerald-500/10 border-t-2 border-emerald-500/30 text-emerald-300',
+    amber:   'bg-amber-500/8 border-t-2 border-amber-500/30 text-amber-300',
+  }
+  const valueColors = { teal: 'text-teal-400', emerald: 'text-emerald-400', amber: 'text-amber-400' }
+  return (
+    <div className={`flex items-center justify-between px-4 py-3 ${colors[color]}`}>
+      <span className={`text-sm font-semibold ${colors[color].split(' ').find(c => c.startsWith('text-'))}`}>{label}</span>
+      <div className="text-right">
+        <span className={`text-sm font-bold font-mono ${valueColors[color]}`}>{value}</span>
+        {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+function MonthlyDetailReportView({
+  report,
+  overheadEnabled,
+  overheadPct,
+}: {
+  report: Extract<AnyReport, { type: 'monthly-detail' }>
+  overheadEnabled: boolean
+  overheadPct: number
+}) {
   const [selectedMonth, setSelectedMonth] = useState<string>(report.rows[report.rows.length - 1]?.month ?? '')
 
   const chartData = report.rows.map(r => ({
@@ -598,34 +648,40 @@ function MonthlyDetailReportView({ report }: { report: Extract<AnyReport, { type
 
   return (
     <div className="space-y-6">
+      {/* Summary stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Revenue"      value={formatCurrency(report.totalRevenue)} />
+        <StatCard label="Total Net Sales"    value={formatCurrency(report.totalRevenue)} />
         <StatCard label="Total Transactions" value={formatNumber(report.totalTransactions)} />
         <StatCard label="Monthly Avg"        value={formatCurrency(report.avgMonthlyRevenue)} />
         <StatCard label="Best Month"         value={report.bestMonth ? formatCurrency(report.bestMonth.revenue) : '—'} sub={report.bestMonth?.label} />
       </div>
 
+      {/* Revenue chart */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-        <h3 className="font-semibold text-slate-200 mb-4">Monthly Revenue</h3>
+        <h3 className="font-semibold text-slate-200 mb-4">Monthly Net Sales</h3>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
             <XAxis dataKey="month" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={48} />
-            <Tooltip formatter={(v: number) => [formatCurrency(v), 'Revenue']} />
+            <Tooltip formatter={(v: number) => [formatCurrency(v), 'Net Sales']} />
             <Bar dataKey="revenue" fill="#14B8A6" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Month selector + detail */}
+      {/* ── Income Statement Deep Dive ── */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3">
-          <h3 className="font-semibold text-slate-200">Monthly Deep Dive</h3>
+        {/* Header + month selector */}
+        <div className="px-4 py-3 border-b border-slate-700 flex items-center gap-3">
+          <div>
+            <h3 className="font-semibold text-slate-200">Income Statement</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Per-month breakdown matching your Walley's format</p>
+          </div>
           <select
             value={selectedMonth}
             onChange={e => setSelectedMonth(e.target.value)}
-            className="ml-auto border border-slate-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+            className="ml-auto bg-slate-900 border border-slate-600 rounded-lg px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500/30 cursor-pointer"
           >
             {report.rows.map(r => (
               <option key={r.month} value={r.month}>{r.label}</option>
@@ -633,54 +689,142 @@ function MonthlyDetailReportView({ report }: { report: Extract<AnyReport, { type
           </select>
         </div>
 
-        {selectedRow && (
-          <div className="divide-y divide-slate-700/40">
-            {/* Stats row */}
-            <div className="grid grid-cols-4 divide-x divide-gray-100">
-              {[
-                { label: 'Revenue',      value: formatCurrency(selectedRow.revenue) },
-                { label: 'Transactions', value: formatNumber(selectedRow.transactions) },
-                { label: 'Avg Sale',     value: formatCurrency(selectedRow.avgTransaction) },
-                { label: 'MoM Growth',   value: selectedRow.momGrowth == null ? '—' : `${selectedRow.momGrowth >= 0 ? '+' : ''}${selectedRow.momGrowth.toFixed(1)}%`, color: selectedRow.momGrowth == null ? undefined : selectedRow.momGrowth >= 0 ? 'text-emerald-400' : 'text-red-400' },
-              ].map(item => (
-                <div key={item.label} className="px-4 py-3 text-center">
-                  <p className="text-xs text-slate-500 mb-1">{item.label}</p>
-                  <p className={`font-semibold font-mono ${item.color ?? 'text-slate-100'}`}>{item.value}</p>
-                </div>
-              ))}
-            </div>
+        {selectedRow && (() => {
+          const overheadAmt = overheadEnabled && selectedRow.netProfit !== null
+            ? selectedRow.netProfit * (overheadPct / 100) : null
+          const finalNet = overheadAmt !== null && selectedRow.netProfit !== null
+            ? selectedRow.netProfit - overheadAmt : null
 
-            {/* Top products for this month */}
-            {selectedRow.topProducts.length > 0 && (
-              <div>
-                <p className="px-4 pt-3 pb-1 text-xs font-semibold text-slate-500 uppercase">Top Products This Month</p>
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-900 border-b border-slate-700/50">
-                    <tr>
-                      <th className="px-4 py-2 text-center text-xs font-semibold text-slate-500">#</th>
-                      <th className="px-4 py-2 text-left   text-xs font-semibold text-slate-500">Product</th>
-                      <th className="px-4 py-2 text-right  text-xs font-semibold text-slate-500">Revenue</th>
-                      <th className="px-4 py-2 text-right  text-xs font-semibold text-slate-500">Units</th>
-                      <th className="px-4 py-2 text-right  text-xs font-semibold text-slate-500">Avg Price</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {selectedRow.topProducts.map((p, i) => (
-                      <tr key={p.name} className="hover:bg-slate-700/50">
-                        <td className="px-4 py-2 text-center text-slate-500 text-xs">{i + 1}</td>
-                        <td className="px-4 py-2 font-medium text-slate-200 max-w-xs truncate">{p.name}</td>
-                        <td className="px-4 py-2 text-right font-mono text-slate-300">{formatCurrency(p.totalRevenue)}</td>
-                        <td className="px-4 py-2 text-right text-slate-400">{formatNumber(p.totalUnitsSold)}</td>
-                        <td className="px-4 py-2 text-right font-mono text-slate-500">{formatCurrency(p.avgPrice)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          return (
+            <div>
+              {/* ── INCOME ── */}
+              <LedgerSection label="Income" />
+              {selectedRow.hasDetailedFinancials ? (
+                <>
+                  <LedgerRow label="Gross Sales"       value={formatCurrency(selectedRow.grossSales)} indent />
+                  <LedgerRow label="− Returns"         value={selectedRow.returns > 0 ? `−${formatCurrency(selectedRow.returns)}` : formatCurrency(0)} indent />
+                  <LedgerRow label="− Discounts & Comps" value={selectedRow.discounts > 0 ? `−${formatCurrency(selectedRow.discounts)}` : formatCurrency(0)} indent />
+                </>
+              ) : (
+                <LedgerRow label="Gross Sales (estimated)" value={formatCurrency(selectedRow.grossSales)} indent />
+              )}
+              <LedgerSubtotal label="Net Sales" value={formatCurrency(selectedRow.netSales)} />
+
+              {/* ── PAYMENTS ── */}
+              {selectedRow.hasDetailedFinancials && (
+                <>
+                  <LedgerSection label="Payments" />
+                  <LedgerRow label="Total Collected" value={formatCurrency(selectedRow.totalCollected)} indent />
+                  <LedgerRow label="− Square Fees"   value={selectedRow.fees > 0 ? `−${formatCurrency(selectedRow.fees)}` : formatCurrency(0)} indent />
+                  <LedgerSubtotal label="Net Revenue" value={formatCurrency(selectedRow.netRevenue)} />
+                </>
+              )}
+
+              {/* ── COGS & MARGIN ── */}
+              {selectedRow.cogs !== null && (
+                <>
+                  <LedgerSection label="Cost of Goods" />
+                  <LedgerRow label="COGS (Food)" value={formatCurrency(selectedRow.cogs)} indent />
+                  <LedgerSubtotal
+                    label="Gross Margin"
+                    value={formatCurrency(selectedRow.grossMargin!)}
+                    sub={selectedRow.grossMarginPct !== null ? `${selectedRow.grossMarginPct.toFixed(2)}%` : undefined}
+                  />
+                </>
+              )}
+
+              {/* ── OPEX ── */}
+              {(Object.keys(selectedRow.opexByCategory).length > 0 || selectedRow.fees > 0) && (
+                <>
+                  <LedgerSection label="Operating Expenses" />
+                  {Object.entries(selectedRow.opexByCategory).map(([cat, amt]) => (
+                    <LedgerRow key={cat} label={`− ${cat}`} value={formatCurrency(amt)} indent />
+                  ))}
+                  {selectedRow.fees > 0 && (
+                    <LedgerRow label="− Square Expenses" value={formatCurrency(selectedRow.fees)} indent />
+                  )}
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/40 border-t border-slate-700/50">
+                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total OPEX</span>
+                    <span className="text-sm font-mono font-semibold text-slate-300">{formatCurrency(selectedRow.opexTotal)}</span>
+                  </div>
+                </>
+              )}
+
+              {/* ── NET PROFIT ── */}
+              {selectedRow.netProfit !== null && (
+                <>
+                  <LedgerSubtotal
+                    label="Net Profit"
+                    value={formatCurrency(selectedRow.netProfit)}
+                    sub={selectedRow.netProfitPct !== null ? `${selectedRow.netProfitPct.toFixed(2)}% margin` : undefined}
+                    color="emerald"
+                  />
+                  {/* ── OVERHEAD (optional) ── */}
+                  {overheadEnabled && overheadAmt !== null && (
+                    <>
+                      <LedgerRow
+                        label={`− ${overheadPct}% Overhead`}
+                        value={`−${formatCurrency(overheadAmt)}`}
+                      />
+                      <LedgerSubtotal
+                        label="Net After Overhead"
+                        value={formatCurrency(finalNet!)}
+                        color="amber"
+                      />
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Quick metrics strip */}
+              <div className="grid grid-cols-3 divide-x divide-slate-700 border-t border-slate-700 bg-slate-900/40">
+                {[
+                  { label: 'Transactions',  value: formatNumber(selectedRow.transactions) },
+                  { label: 'Avg Sale',      value: formatCurrency(selectedRow.avgTransaction) },
+                  { label: 'MoM Growth',    value: selectedRow.momGrowth == null ? '—' : `${selectedRow.momGrowth >= 0 ? '+' : ''}${selectedRow.momGrowth.toFixed(1)}%`,
+                    color: selectedRow.momGrowth == null ? 'text-slate-400' : selectedRow.momGrowth >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                ].map(item => (
+                  <div key={item.label} className="px-4 py-3 text-center">
+                    <p className="text-[10px] text-slate-600 uppercase tracking-wide mb-1">{item.label}</p>
+                    <p className={`text-sm font-semibold font-mono ${(item as any).color ?? 'text-slate-200'}`}>{item.value}</p>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )
+        })()}
       </div>
+
+      {/* Top products for selected month */}
+      {selectedRow && selectedRow.topProducts.length > 0 && (
+        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-700/50">
+            <h3 className="font-semibold text-slate-200">Top Products — {selectedRow.label}</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-slate-900 border-b border-slate-700/50">
+              <tr>
+                <th className="px-4 py-2 text-center text-xs font-semibold text-slate-500">#</th>
+                <th className="px-4 py-2 text-left   text-xs font-semibold text-slate-500">Product</th>
+                <th className="px-4 py-2 text-right  text-xs font-semibold text-slate-500">Revenue</th>
+                <th className="px-4 py-2 text-right  text-xs font-semibold text-slate-500">Units</th>
+                <th className="px-4 py-2 text-right  text-xs font-semibold text-slate-500">Avg Price</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700/30">
+              {selectedRow.topProducts.map((p, i) => (
+                <tr key={p.name} className="hover:bg-slate-700/30 transition-colors">
+                  <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{i + 1}</td>
+                  <td className="px-4 py-2.5 font-medium text-slate-200 max-w-xs truncate">{p.name}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-300">{formatCurrency(p.totalRevenue)}</td>
+                  <td className="px-4 py-2.5 text-right text-slate-400">{formatNumber(p.totalUnitsSold)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-500">{formatCurrency(p.avgPrice)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Inventory suggestions */}
       {suggestions.length > 0 && (
@@ -699,7 +843,7 @@ function MonthlyDetailReportView({ report }: { report: Extract<AnyReport, { type
         </div>
       )}
 
-      {/* Full table */}
+      {/* All-months summary table */}
       <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50">
           <h3 className="font-semibold text-slate-200">All Months</h3>
@@ -709,25 +853,36 @@ function MonthlyDetailReportView({ report }: { report: Extract<AnyReport, { type
             <thead className="bg-slate-900 border-b border-slate-700/50">
               <tr>
                 <th className="px-4 py-2 text-left  text-xs font-semibold text-slate-500">Month</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Revenue</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Transactions</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Avg Transaction</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">MoM Growth</th>
-                <th className="px-4 py-2 text-left  text-xs font-semibold text-slate-500">Top Product</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Gross Sales</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Net Sales</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Fees</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">COGS</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Net Profit</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">Margin%</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-500">MoM</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-slate-700/30">
               {report.rows.map(r => (
-                <tr key={r.month} className={`hover:bg-slate-700/50 cursor-pointer ${r.month === selectedMonth ? 'bg-teal-500/10' : ''}`}
-                  onClick={() => setSelectedMonth(r.month)}>
-                  <td className="px-4 py-2 font-medium text-slate-100">{r.label}</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-200">{formatCurrency(r.revenue)}</td>
-                  <td className="px-4 py-2 text-right text-slate-400">{formatNumber(r.transactions)}</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-400">{formatCurrency(r.avgTransaction)}</td>
-                  <td className={`px-4 py-2 text-right text-xs font-medium ${r.momGrowth == null ? 'text-slate-500' : r.momGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <tr
+                  key={r.month}
+                  className={`hover:bg-slate-700/30 cursor-pointer transition-colors ${r.month === selectedMonth ? 'bg-teal-500/8' : ''}`}
+                  onClick={() => setSelectedMonth(r.month)}
+                >
+                  <td className="px-4 py-2.5 font-medium text-slate-100">{r.label}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-400 text-xs">{formatCurrency(r.grossSales)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-200">{formatCurrency(r.netSales)}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-500 text-xs">{r.fees > 0 ? `−${formatCurrency(r.fees)}` : '—'}</td>
+                  <td className="px-4 py-2.5 text-right font-mono text-slate-500 text-xs">{r.cogs !== null ? formatCurrency(r.cogs) : '—'}</td>
+                  <td className={`px-4 py-2.5 text-right font-mono text-xs font-semibold ${r.netProfit === null ? 'text-slate-500' : r.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {r.netProfit !== null ? formatCurrency(r.netProfit) : '—'}
+                  </td>
+                  <td className={`px-4 py-2.5 text-right text-xs ${r.netProfitPct === null ? 'text-slate-500' : 'text-slate-300'}`}>
+                    {r.netProfitPct !== null ? `${r.netProfitPct.toFixed(1)}%` : '—'}
+                  </td>
+                  <td className={`px-4 py-2.5 text-right text-xs font-medium ${r.momGrowth == null ? 'text-slate-500' : r.momGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {r.momGrowth == null ? '—' : `${r.momGrowth >= 0 ? '+' : ''}${r.momGrowth.toFixed(1)}%`}
                   </td>
-                  <td className="px-4 py-2 text-slate-500 text-xs max-w-xs truncate">{r.topProduct ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -918,12 +1073,16 @@ export default function ReportsView() {
   const navigate = useNavigate()
   const allTransactions = useAllTransactions()
   const overrides = useOverridesMap()
+  const opexEntries  = useLiveQuery(() => db.opexEntries.toArray(), []) ?? []
+  const costData     = useLiveQuery(() => db.productCostData.toArray(), []) ?? []
 
   const [selectedType, setSelectedType] = useState<ReportType>('revenue')
   const [startDate, setStartDate] = useState(() => format(subDays(new Date(), 90), 'yyyy-MM-dd'))
   const [endDate,   setEndDate]   = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [granularity, setGranularity] = useState<TimeGranularity>('Daily')
   const [topN, setTopN] = useState(20)
+  const [overheadEnabled, setOverheadEnabled] = useState(false)
+  const [overheadPct, setOverheadPct] = useState(30)
   const [report, setReport] = useState<AnyReport | null>(null)
   const [generating, setGenerating] = useState(false)
 
@@ -957,7 +1116,7 @@ export default function ReportsView() {
         else if (selectedType === 'top-products')      result = buildTopProductsReport(filtered, overrides, topN)
         else if (selectedType === 'customer-behavior') result = buildCustomerBehaviorReport(filtered)
         else if (selectedType === 'transaction-log')   result = buildTransactionLogReport(filtered)
-        else if (selectedType === 'monthly-detail')    result = buildMonthlyDetailReport(filtered, overrides)
+        else if (selectedType === 'monthly-detail')    result = buildMonthlyDetailReport(filtered, overrides, opexEntries, costData)
         else if (selectedType === 'cash')              result = buildCashReport(filtered)
         else                                           result = buildSeasonalReport(filtered, overrides)
         setReport(result)
@@ -965,7 +1124,7 @@ export default function ReportsView() {
         setGenerating(false)
       }
     }, 0)
-  }, [filtered, selectedType, granularity, topN, overrides])
+  }, [filtered, selectedType, granularity, topN, overrides, opexEntries, costData])
 
   if (allTransactions.length === 0) {
     return (
@@ -1047,9 +1206,37 @@ export default function ReportsView() {
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">Show top</label>
             <select value={topN} onChange={e => setTopN(Number(e.target.value))}
-              className="border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm focus:outline-none focus:outline-none focus:ring-2 focus:ring-teal-500/30">
+              className="border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30">
               {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n} products</option>)}
             </select>
+          </div>
+        )}
+
+        {/* Overhead toggle (monthly-detail only) */}
+        {selectedType === 'monthly-detail' && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/8 border border-amber-500/20 rounded-lg">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <div
+                onClick={() => setOverheadEnabled(v => !v)}
+                className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer ${overheadEnabled ? 'bg-amber-500' : 'bg-slate-600'}`}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${overheadEnabled ? 'translate-x-4' : ''}`} />
+              </div>
+              <span className="text-xs font-medium text-amber-300/80">Overhead deduction</span>
+            </label>
+            {overheadEnabled && (
+              <div className="flex items-center gap-1 ml-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={overheadPct}
+                  onChange={e => setOverheadPct(Math.min(99, Math.max(1, Number(e.target.value))))}
+                  className="w-12 bg-slate-900 border border-amber-500/30 rounded px-1.5 py-0.5 text-xs font-mono text-amber-300 text-center focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                />
+                <span className="text-xs text-amber-400/60">%</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -1100,7 +1287,7 @@ export default function ReportsView() {
           {report.type === 'customer-behavior' && <CustomerBehaviorReportView report={report} />}
           {report.type === 'transaction-log'   && <TransactionLogReportView   report={report} />}
           {report.type === 'seasonal'          && <SeasonalReportView         report={report} />}
-          {report.type === 'monthly-detail'    && <MonthlyDetailReportView    report={report} />}
+          {report.type === 'monthly-detail'    && <MonthlyDetailReportView    report={report} overheadEnabled={overheadEnabled} overheadPct={overheadPct} />}
           {report.type === 'cash'              && <CashReportView             report={report} />}
         </>
       )}

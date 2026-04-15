@@ -1,5 +1,6 @@
 import { format, parseISO, startOfWeek, addDays } from 'date-fns'
-import type { SalesTransaction } from '../types/models'
+import type { SalesTransaction, OpexEntry, ProductCostData } from '../types/models'
+import { effectiveUnitCost } from '../types/models'
 import {
   computeProductStats,
   computeRevenueByGranularity,
@@ -318,13 +319,36 @@ export function buildSeasonalReport(
 export interface MonthlyDetailRow {
   month: string           // 'yyyy-MM'
   label: string           // 'January 2025'
-  revenue: number
+  // Income section (from Square CSV columns)
+  grossSales: number
+  returns: number         // absolute value of refunds
+  discounts: number       // discounts & comps (absolute value)
+  netSales: number        // grossSales - returns - discounts
+  // Payments section
+  totalCollected: number
+  fees: number            // Square processing fees (positive/absolute)
+  netRevenue: number      // totalCollected - fees
+  // COGS & Margin
+  cogs: number | null
+  grossMargin: number | null
+  grossMarginPct: number | null
+  // OPEX
+  opexByCategory: Record<string, number>  // manually entered, keyed by category
+  opexSquareExpenses: number              // = fees (auto from CSV)
+  opexTotal: number                       // sum of all opex incl. square expenses
+  // Net
+  netProfit: number | null
+  netProfitPct: number | null             // netProfit / netRevenue
+  // Whether the CSV had detailed financial columns (grossSales, fees, etc.)
+  hasDetailedFinancials: boolean
+  // Metadata / legacy
+  revenue: number         // = netSales (for backward compat with chart/table)
   transactions: number
   avgTransaction: number
   topProduct: string | null
   topProductRevenue: number
-  momGrowth: number | null  // % change vs previous month; null for first month
-  topProducts: ProductStats[] // top 10 for this month, for suggestions
+  momGrowth: number | null
+  topProducts: ProductStats[]
 }
 
 export interface MonthlyDetailReport {
@@ -340,6 +364,8 @@ export interface MonthlyDetailReport {
 export function buildMonthlyDetailReport(
   transactions: SalesTransaction[],
   overrides: Record<string, string>,
+  opexEntries: OpexEntry[] = [],
+  costData: ProductCostData[] = [],
 ): MonthlyDetailReport {
   const monthMap = new Map<string, SalesTransaction[]>()
   for (const tx of transactions) {
@@ -349,30 +375,122 @@ export function buildMonthlyDetailReport(
     monthMap.set(key, arr)
   }
 
+  // Build cost lookup: productName → unit cost
+  const costMap = new Map<string, number>()
+  for (const c of costData) {
+    const cost = effectiveUnitCost(c)
+    if (cost > 0) costMap.set(c.productName, cost)
+  }
+  const hasCostData = costMap.size > 0
+
+  // Group opex entries by month
+  const opexByMonth = new Map<string, OpexEntry[]>()
+  for (const entry of opexEntries) {
+    const arr = opexByMonth.get(entry.month) ?? []
+    arr.push(entry)
+    opexByMonth.set(entry.month, arr)
+  }
+
   const sorted = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b))
 
   const rows: MonthlyDetailRow[] = sorted.map(([month, txs], idx) => {
-    const revenue = txs.reduce((s, t) => s + t.netSales, 0)
-    const count = txs.length
-    const stats = computeProductStats(txs, overrides)
-    const top = stats[0] ?? null
+    // Check if this batch of transactions has detailed Square financials
+    const hasDetailedFinancials = txs.some(t => t.grossSales !== undefined)
+
+    let grossSales: number
+    let returns: number
+    let discounts: number
+    let netSales: number
+    let totalCollected: number
+    let fees: number
+    let netRevenue: number
+
+    if (hasDetailedFinancials) {
+      grossSales     = txs.reduce((s, t) => s + (t.grossSales ?? 0), 0)
+      returns        = Math.abs(txs.reduce((s, t) => s + (t.partialRefunds ?? 0), 0))
+      discounts      = Math.abs(txs.reduce((s, t) => s + (t.discounts ?? 0), 0))
+      netSales       = txs.reduce((s, t) => s + t.netSales, 0)
+      totalCollected = txs.reduce((s, t) => s + (t.totalCollected ?? t.netSales), 0)
+      fees           = Math.abs(txs.reduce((s, t) => s + (t.fees ?? 0), 0))
+      netRevenue     = totalCollected - fees
+    } else {
+      // Fallback: only netSales available (older imports)
+      const positiveSales = txs.filter(t => t.netSales >= 0).reduce((s, t) => s + t.netSales, 0)
+      const refundTotal   = Math.abs(txs.filter(t => t.netSales < 0).reduce((s, t) => s + t.netSales, 0))
+      grossSales     = positiveSales + refundTotal
+      returns        = refundTotal
+      discounts      = 0
+      netSales       = txs.reduce((s, t) => s + t.netSales, 0)
+      totalCollected = netSales
+      fees           = 0
+      netRevenue     = netSales
+    }
+
+    // COGS: sum unit cost × units sold for each product
+    let cogs: number | null = null
+    if (hasCostData) {
+      const stats = computeProductStats(txs, overrides)
+      cogs = 0
+      for (const p of stats) {
+        const unitCost = costMap.get(p.name)
+        if (unitCost !== undefined) cogs! += unitCost * p.totalUnitsSold
+      }
+    }
+
+    const grossMargin    = cogs !== null ? netRevenue - cogs : null
+    const grossMarginPct = grossMargin !== null && netRevenue > 0
+      ? (grossMargin / netRevenue) * 100 : null
+
+    // OPEX: group manual entries by category for this month
+    const monthOpex = opexByMonth.get(month) ?? []
+    const opexByCategory: Record<string, number> = {}
+    for (const entry of monthOpex) {
+      opexByCategory[entry.category] = (opexByCategory[entry.category] ?? 0) + entry.amount
+    }
+    const opexManualTotal = Object.values(opexByCategory).reduce((s, v) => s + v, 0)
+    const opexTotal = opexManualTotal + fees  // Square fees count as OPEX too
+
+    // Net profit only computable when we have COGS (full picture)
+    const netProfit    = grossMargin !== null ? grossMargin - opexManualTotal : null
+    const netProfitPct = netProfit !== null && netRevenue > 0
+      ? (netProfit / netRevenue) * 100 : null
+
+    // Product stats (compute once if we haven't already for COGS)
+    const productStats = computeProductStats(txs, overrides)
+    const top = productStats[0] ?? null
 
     let momGrowth: number | null = null
     if (idx > 0) {
-      const prevRevenue = sorted[idx - 1][1].reduce((s, t) => s + t.netSales, 0)
-      if (prevRevenue > 0) momGrowth = ((revenue - prevRevenue) / prevRevenue) * 100
+      const prevNetSales = sorted[idx - 1][1].reduce((s, t) => s + t.netSales, 0)
+      if (prevNetSales > 0) momGrowth = ((netSales - prevNetSales) / prevNetSales) * 100
     }
 
     return {
       month,
       label: format(parseISO(month + '-01'), 'MMMM yyyy'),
-      revenue,
-      transactions: count,
-      avgTransaction: count > 0 ? revenue / count : 0,
+      grossSales,
+      returns,
+      discounts,
+      netSales,
+      totalCollected,
+      fees,
+      netRevenue,
+      cogs,
+      grossMargin,
+      grossMarginPct,
+      opexByCategory,
+      opexSquareExpenses: fees,
+      opexTotal,
+      netProfit,
+      netProfitPct,
+      hasDetailedFinancials,
+      revenue: netSales,
+      transactions: txs.length,
+      avgTransaction: txs.length > 0 ? netSales / txs.length : 0,
       topProduct: top?.name ?? null,
       topProductRevenue: top?.totalRevenue ?? 0,
       momGrowth,
-      topProducts: stats.slice(0, 10),
+      topProducts: productStats.slice(0, 10),
     }
   })
 

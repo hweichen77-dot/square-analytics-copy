@@ -163,6 +163,23 @@ export function parseCSVContent(content: string): CSVParseResult {
       dayOfWeek: date.getDay() + 1,
       hour: date.getHours(),
     }
+
+    // Parse Square financial detail columns when present
+    const grossSalesRaw     = parseCurrency(get('Gross Sales'))
+    const discountsRaw      = parseCurrency(get('Discounts'))
+    const serviceChargesRaw = parseCurrency(get('Service Charges'))
+    const partialRefundsRaw = parseCurrency(get('Partial Refunds'))
+    const totalCollectedRaw = parseCurrency(get('Total Collected'))
+    const feesRaw           = parseCurrency(get('Fees'))
+    const netTotalRaw       = parseCurrency(get('Net Total'))
+    if (grossSalesRaw !== 0 || get('Gross Sales'))     tx.grossSales     = grossSalesRaw
+    if (discountsRaw  !== 0 || get('Discounts'))       tx.discounts      = discountsRaw
+    if (serviceChargesRaw !== 0 || get('Service Charges')) tx.serviceCharges = serviceChargesRaw
+    if (partialRefundsRaw !== 0 || get('Partial Refunds')) tx.partialRefunds = partialRefundsRaw
+    if (totalCollectedRaw !== 0 || get('Total Collected')) tx.totalCollected = totalCollectedRaw
+    if (feesRaw !== 0 || get('Fees'))                  tx.fees           = feesRaw
+    if (netTotalRaw !== 0 || get('Net Total'))         tx.netTotal       = netTotalRaw
+
     if (customerID) tx.customerID = customerID
     if (customerName) tx.customerName = customerName.trim()
     transactions.push(tx)

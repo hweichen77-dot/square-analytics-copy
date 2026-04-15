@@ -7,6 +7,7 @@ import type {
   StoreEvent,
   ProductBundle,
   CatalogueProduct,
+  OpexEntry,
 } from '../types/models'
 import { splitItemVariation } from '../types/models'
 
@@ -18,6 +19,7 @@ class WalleysDB extends Dexie {
   storeEvents!: Dexie.Table<StoreEvent, number>
   productBundles!: Dexie.Table<ProductBundle, number>
   catalogueProducts!: Dexie.Table<CatalogueProduct, number>
+  opexEntries!: Dexie.Table<OpexEntry, number>
 
   constructor() {
     super('WalleysDB')
@@ -48,6 +50,18 @@ class WalleysDB extends Dexie {
           p.variationName = variationName
         }
       })
+    })
+
+    // Version 4: add opexEntries table for manual operating expense tracking.
+    this.version(4).stores({
+      salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
+      categoryOverrides: '++id, &productName',
+      restockLogs: '++id, productName, date',
+      productCostData: '++id, &productName',
+      storeEvents: '++id, startDate, endDate',
+      productBundles: '++id, name',
+      catalogueProducts: '++id, &name, itemName, variationName, sku, category, enabled',
+      opexEntries: '++id, month, category',
     })
 
     // Version 2: retroactively normalize paymentMethod for cash transactions.
