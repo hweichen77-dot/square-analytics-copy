@@ -56,6 +56,7 @@ function orderToTransaction(order: SquareOrder, employeeMap: Record<string, stri
     netSales,
     staffName: order.employee_id ? (employeeMap[order.employee_id] ?? order.employee_id) : '',
     paymentMethod: payment,
+    customerID: order.customer_id ?? undefined,
     itemDescription: description,
     dayOfWeek: date.getDay() + 1,
     hour: date.getHours(),

@@ -124,9 +124,6 @@ function NavItemFull({ item, badge, onClose }: { item: NavItem; badge?: number; 
     >
       {ICONS[item.iconKey]}
       <span className="truncate flex-1">{item.label}</span>
-      {item.path === '/square-sync' && (
-        <span className="text-[10px] text-slate-300 font-medium ml-auto shrink-0">Beta</span>
-      )}
       {badge != null && badge > 0 && (
         <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
           {badge > 99 ? '99+' : badge}

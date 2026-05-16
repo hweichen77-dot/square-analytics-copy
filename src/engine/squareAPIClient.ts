@@ -73,6 +73,7 @@ export interface SquareOrder {
   // return_amounts is present when refunds have been applied to this order
   return_amounts?: { total_money: { amount: number } }
   employee_id?: string
+  customer_id?: string
 }
 
 export interface SquareCatalogItem {
