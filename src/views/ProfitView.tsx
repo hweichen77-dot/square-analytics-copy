@@ -286,6 +286,7 @@ export default function ProfitView() {
   const { rawStats, profitRows } = useMemo(() => {
     const stats = computeProductStats(transactions)
     const byName = Object.fromEntries(costData.map((c: ProductCostData) => [c.productName, c]))
+    const byNameLower = Object.fromEntries(costData.map((c: ProductCostData) => [c.productName.toLowerCase().trim(), c]))
     // Build case-insensitive catalogue price lookup (selling price from Square).
     const catPriceLower: Record<string, number> = {}
     for (const cp of catalogueProducts) {
@@ -296,12 +297,29 @@ export default function ProfitView() {
     function lookupCataloguePrice(name: string): number | null {
       const lower = name.toLowerCase().trim()
       if (catPriceLower[lower] !== undefined) return catPriceLower[lower]
-      // Try stripping trailing variant "(S)", "(M)", etc.
+      const stripped = lower.startsWith('*') ? lower.slice(1).trim() : lower
+      if (catPriceLower[stripped] !== undefined) return catPriceLower[stripped]
       const base = lower.replace(/\s*\([^)]*\)\s*$/, '').trim()
-      return catPriceLower[base] ?? null
+      if (catPriceLower[base] !== undefined) return catPriceLower[base]
+      const strippedBase = stripped.replace(/\s*\([^)]*\)\s*$/, '').trim()
+      return catPriceLower[strippedBase] ?? null
     }
+    function stripStar(n: string) { return n.startsWith('*') ? n.slice(1).trim() : n }
     function lookupCost(name: string) {
-      return byName[name] ?? byName[baseName(name)]
+      const stripped = stripStar(name)
+      const lower = name.toLowerCase().trim()
+      const base = baseName(name)
+      const baseLower = base.toLowerCase().trim()
+      const strippedLower = stripped.toLowerCase().trim()
+      const strippedBase = baseName(stripped).toLowerCase().trim()
+      return byName[name]
+        ?? byName[base]
+        ?? byName[stripped]
+        ?? byName[baseName(stripped)]
+        ?? byNameLower[lower]
+        ?? byNameLower[baseLower]
+        ?? byNameLower[strippedLower]
+        ?? byNameLower[strippedBase]
     }
     const rows: ProfitRow[] = stats.map(p => {
       const c = lookupCost(p.name)

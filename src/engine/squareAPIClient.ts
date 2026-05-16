@@ -1,7 +1,11 @@
 const BASE = 'https://connect.squareup.com/v2'
 
 function authHeaders(token: string): HeadersInit {
-  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Square-Version': '2023-10-18',
+  }
 }
 
 export interface SquareLocation {
@@ -12,7 +16,11 @@ export interface SquareLocation {
 export interface SquareOrderLineItem {
   name: string
   quantity: string
+  variation_name?: string
   base_price_money?: { amount: number; currency: string }
+  gross_sales_money?: { amount: number; currency: string }
+  total_discount_money?: { amount: number; currency: string }
+  total_tax_money?: { amount: number; currency: string }
 }
 
 export interface SquareOrder {
@@ -42,11 +50,16 @@ export interface SquareCatalogItem {
         name: string
         price_money?: { amount: number; currency: string }
         sku?: string
+        item_id?: string
       }
     }[]
     category_id?: string
     is_taxable?: boolean
     is_archived?: boolean
+  }
+  // Present when type === 'CATEGORY'
+  category_data?: {
+    name: string
   }
 }
 
@@ -77,14 +90,14 @@ export async function fetchOrders(
       query: {
         filter: {
           date_time_filter: {
-            created_at: {
+            closed_at: {
               start_at: startDate.toISOString(),
               end_at: endDate.toISOString(),
             },
           },
           state_filter: { states: ['COMPLETED'] },
         },
-        sort: { sort_field: 'CREATED_AT', sort_order: 'ASC' },
+        sort: { sort_field: 'CLOSED_AT', sort_order: 'ASC' },
       },
       limit: 500,
     }
@@ -104,13 +117,14 @@ export async function fetchOrders(
   return orders
 }
 
+// Fetches both ITEM and CATEGORY objects so category names can be resolved.
 export async function fetchCatalogue(token: string): Promise<SquareCatalogItem[]> {
   const items: SquareCatalogItem[] = []
   let cursor: string | undefined
 
   do {
     const url = new URL(`${BASE}/catalog/list`)
-    url.searchParams.set('types', 'ITEM')
+    url.searchParams.set('types', 'ITEM,CATEGORY')
     if (cursor) url.searchParams.set('cursor', cursor)
 
     const res = await fetch(url.toString(), { headers: authHeaders(token) })

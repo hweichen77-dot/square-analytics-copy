@@ -40,7 +40,11 @@ function orderToTransaction(order: SquareOrder): Omit<SalesTransaction, 'id'> | 
   const description = lineItems
     .map(li => {
       const qty = parseInt(li.quantity, 10) || 1
-      return `${qty} x ${li.name}`
+      const varName = (li.variation_name ?? '').trim()
+      // Match Swift logic: only append variation if it exists and isn't "Regular"
+      const isDefault = !varName || varName.toLowerCase() === 'regular'
+      const fullName = isDefault ? li.name : `${li.name} (${varName})`
+      return `${qty} x ${fullName}`
     })
     .join(', ')
 
@@ -58,15 +62,20 @@ function orderToTransaction(order: SquareOrder): Omit<SalesTransaction, 'id'> | 
   }
 }
 
-function catalogueToProduct(item: SquareCatalogItem): Omit<CatalogueProduct, 'id'>[] {
+function catalogueToProduct(
+  item: SquareCatalogItem,
+  categoryMap: Record<string, string>,
+): Omit<CatalogueProduct, 'id'>[] {
   const data = item.item_data
   if (!data?.name) return []
   const name = data.name.trim()
   if (!name) return []
 
   const variations = data.variations ?? []
+  // Resolve category name from the category ID → name map
+  const category = data.category_id ? (categoryMap[data.category_id] ?? '') : ''
   const common = {
-    category: '',
+    category,
     taxable: data.is_taxable ?? false,
     enabled: !(data.is_archived ?? false),
     quantity: null as number | null,
@@ -127,8 +136,18 @@ export async function runSquareSync(
   const ordersAdded = await upsertTransactions(txRows)
 
   onStatus({ phase: 'catalogue', message: 'Fetching catalogue...', ordersAdded, productsAdded: 0 })
-  const catItems = await fetchCatalogue(accessToken)
-  const products = catItems.flatMap(catalogueToProduct)
+  const catObjects = await fetchCatalogue(accessToken)
+
+  // Build category ID → name map from CATEGORY objects returned alongside ITEMs
+  const categoryMap: Record<string, string> = {}
+  for (const obj of catObjects) {
+    if (obj.type === 'CATEGORY' && obj.category_data?.name) {
+      categoryMap[obj.id] = obj.category_data.name
+    }
+  }
+
+  const productItems = catObjects.filter(obj => obj.type === 'ITEM')
+  const products = productItems.flatMap(item => catalogueToProduct(item, categoryMap))
   await upsertCatalogueProducts(products)
 
   onStatus({ phase: 'inventory', message: 'Fetching inventory...', ordersAdded, productsAdded: products.length })

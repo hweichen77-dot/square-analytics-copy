@@ -30,7 +30,7 @@ const RAMEN_KEYWORDS = [
   'hot dog', 'pizza', 'quesadilla', 'mac', 'macaroni',
 ]
 
-const MERCH_KEYWORDS = [
+export const MERCH_KEYWORDS = [
   'shirt', 't-shirt', 'hoodie', 'sweatshirt', 'jacket', 'hat', 'cap', 'beanie',
   'bag', 'backpack', 'lanyard', 'keychain', 'sticker', 'pen', 'pencil',
   'notebook', 'binder', 'folder', 'merch', 'merchandise', 'apparel', 'gear',

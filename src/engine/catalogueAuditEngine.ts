@@ -1,4 +1,5 @@
 import type { CatalogueProduct } from '../types/models'
+import { MERCH_KEYWORDS } from './categoryClassifier'
 
 export type AuditSeverity = 'error' | 'warning' | 'info'
 
@@ -21,12 +22,18 @@ export type AuditFixType =
 
 // ---------------------------------------------------------------------------
 // Tax rules
-// Nothing should be taxable — ramen, carbonated drinks, and merch are all
-// tax-free in this store.
+// Merch items MUST be taxable. Food and beverage items are non-taxable.
 // ---------------------------------------------------------------------------
 
-function shouldBeTaxed(_product: CatalogueProduct): boolean {
-  return false
+function isMerch(product: CatalogueProduct): boolean {
+  const cat = (product.category ?? '').toLowerCase()
+  if (cat.includes('merch') || cat.includes('apparel') || cat.includes('clothing')) return true
+  const lower = product.name.toLowerCase()
+  return MERCH_KEYWORDS.some(k => lower.includes(k))
+}
+
+function shouldBeTaxed(product: CatalogueProduct): boolean {
+  return isMerch(product)
 }
 
 // ---------------------------------------------------------------------------
@@ -80,16 +87,27 @@ export function auditCatalogue(
     const id = p.id
     const name = p.name
 
-    // 1. Wrong taxation — nothing should be taxed (check removed: shouldBeTaxed always returns false)
+    // 1. Merch must be taxable
+    if (shouldBeTaxed(p) && !p.taxable) {
+      issues.push({
+        id: nextId(),
+        productId: id,
+        productName: name,
+        issue: 'Merch not taxed',
+        detail: `"${name}" is a merch item and must be marked taxable. Category: "${p.category || 'none'}"`,
+        severity: 'error',
+        fixType: 'set_taxable_true',
+      })
+    }
 
-    // 2. Wrong taxation — item is taxed but all items should be non-taxable
+    // 2. Non-merch item is taxed but should not be
     if (p.taxable && !shouldBeTaxed(p)) {
       issues.push({
         id: nextId(),
         productId: id,
         productName: name,
         issue: 'Incorrectly taxed',
-        detail: `"${name}" is marked taxable but all items should be non-taxable — ramen, carbonated drinks, and merch are all tax-free in this store. Category: "${p.category || 'none'}"`,
+        detail: `"${name}" is marked taxable but food and beverage items are non-taxable. Category: "${p.category || 'none'}"`,
         severity: 'error',
         fixType: 'set_taxable_false',
       })
@@ -124,8 +142,8 @@ export function auditCatalogue(
       })
     }
 
-    // 5. Missing / uncategorized
-    if (!p.category || p.category.trim() === '' || p.category.toLowerCase() === 'uncategorized') {
+    // 5. Missing / uncategorized / Square "Non" placeholder
+    if (!p.category || p.category.trim() === '' || ['uncategorized', 'non'].includes(p.category.toLowerCase().trim())) {
       issues.push({
         id: nextId(),
         productId: id,

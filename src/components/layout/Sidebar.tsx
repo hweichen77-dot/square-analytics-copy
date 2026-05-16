@@ -125,7 +125,7 @@ function NavItemFull({ item, badge, onClose }: { item: NavItem; badge?: number; 
       {ICONS[item.iconKey]}
       <span className="truncate flex-1">{item.label}</span>
       {item.path === '/square-sync' && (
-        <span className="text-[10px] text-slate-400 font-medium ml-auto shrink-0">Beta</span>
+        <span className="text-[10px] text-slate-300 font-medium ml-auto shrink-0">Beta</span>
       )}
       {badge != null && badge > 0 && (
         <span className="shrink-0 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none">
@@ -153,7 +153,7 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
           <h1 className="font-display text-[14px] font-700 text-slate-100 leading-tight tracking-tight">
             Walley's Analytics
           </h1>
-          <p className="text-[10px] font-medium tracking-[0.08em] uppercase text-slate-400 mt-1.5">
+          <p className="text-[10px] font-medium tracking-[0.08em] uppercase text-slate-300 mt-1.5">
             {txCount.toLocaleString()} transactions
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
         {NAV_SECTIONS.map((section, si) => (
           <div key={si} role={section.heading ? 'group' : undefined} aria-label={section.heading} className={si > 0 ? 'mt-1' : ''}>
             {section.heading && (
-              <p aria-hidden="true" className="px-5 pt-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-400 select-none">
+              <p aria-hidden="true" className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300 select-none">
                 {section.heading}
               </p>
             )}

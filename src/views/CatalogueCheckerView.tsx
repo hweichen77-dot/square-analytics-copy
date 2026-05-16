@@ -201,7 +201,7 @@ export default function CatalogueCheckerView() {
         </svg>
         <span>
           <span className="text-slate-200 font-medium">Tax rules: </span>
-          All items are non-taxable — <span className="text-teal-400">ramen, carbonated drinks, and merch</span> are all tax-free. Any item with tax enabled will be flagged.
+          <span className="text-teal-400">Merch items must be taxable.</span> Food and beverage items (ramen, drinks, snacks) are non-taxable. Items with incorrect tax status will be flagged.
         </span>
       </div>
 

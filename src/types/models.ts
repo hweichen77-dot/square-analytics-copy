@@ -112,13 +112,17 @@ export interface ProductItem {
   qty: number
 }
 
+function stripLeadingAsterisk(name: string): string {
+  return name.startsWith('*') ? name.slice(1).trim() : name
+}
+
 export function parseProductItems(description: string): ProductItem[] {
   if (!description.trim()) return []
   return description.split(',').flatMap(part => {
     const trimmed = part.trim()
     const match = trimmed.match(/^(\d+)\s*x\s+(.+)$/i)
-    if (match) return [{ qty: parseInt(match[1], 10), name: match[2].trim() }]
-    if (trimmed) return [{ qty: 1, name: trimmed }]
+    if (match) return [{ qty: parseInt(match[1], 10), name: stripLeadingAsterisk(match[2].trim()) }]
+    if (trimmed) return [{ qty: 1, name: stripLeadingAsterisk(trimmed) }]
     return []
   })
 }

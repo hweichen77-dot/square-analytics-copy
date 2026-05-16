@@ -333,14 +333,14 @@ export default function DashboardView() {
         <div className="border border-slate-700/50 bg-slate-800/25 px-5 py-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-400 mb-3">Quick Insights</p>
           <ul className="space-y-1.5 text-sm">
-            <li className="text-slate-400">
+            <li className="text-slate-300">
               Best day:{' '}
               <span className="text-slate-200">
                 {format(insights.bestDay.date, 'EEE, MMM d')} — {formatCurrency(insights.bestDay.revenue)}
               </span>
             </li>
             {insights.topProduct && (
-              <li className="text-slate-400">
+              <li className="text-slate-300">
                 Top seller:{' '}
                 <span className="text-slate-200">
                   {insights.topProduct.name} ({formatNumber(insights.topProduct.totalUnitsSold)} units,{' '}
@@ -349,14 +349,14 @@ export default function DashboardView() {
               </li>
             )}
             {insights.slowProduct && (
-              <li className="text-slate-400">
+              <li className="text-slate-300">
                 Slow mover:{' '}
                 <span className="text-amber-400">{insights.slowProduct.name}</span>
                 {' '}— no sales in {Math.floor((Date.now() - insights.slowProduct.lastSoldDate.getTime()) / 86_400_000)} days
               </li>
             )}
             {insights.topStaff && insights.topStaff.name !== 'Unknown' && (
-              <li className="text-slate-400">
+              <li className="text-slate-300">
                 Top staff:{' '}
                 <span className="text-slate-200">
                   {insights.topStaff.name} — {formatCurrency(insights.topStaff.totalSales)} across{' '}
