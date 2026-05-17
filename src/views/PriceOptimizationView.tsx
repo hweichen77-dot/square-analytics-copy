@@ -169,7 +169,7 @@ export default function PriceOptimizationView() {
 
       {changes.length > 0 && (
         <div
-          className={`p-4 rounded-xl border flex items-start gap-3 ${improved >= declined ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-orange-500/10 border-orange-500/30'}`}
+          className={`p-4 border flex items-start gap-3 ${improved >= declined ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-orange-500/10 border-orange-500/30'}`}
         >
           <div>
             <p className="text-sm font-medium text-slate-200">

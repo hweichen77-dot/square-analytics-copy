@@ -234,7 +234,7 @@ export default function CatalogueCheckerView() {
             const worstSev: AuditSeverity = group.errorCount > 0 ? 'error' : group.warningCount > 0 ? 'warning' : 'info'
 
             return (
-              <div key={group.itemName} className={`bg-slate-800 border rounded-xl overflow-hidden ${SEV[worstSev].border}`}>
+              <div key={group.itemName} className={`bg-slate-800/30 border overflow-hidden ${SEV[worstSev].border}`}>
                 {/* Item header row */}
                 <button
                   onClick={() => toggleItem(group.itemName)}

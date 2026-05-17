@@ -299,7 +299,7 @@ export default function BundleView() {
                       return (
                         <div
                           key={p.id}
-                          className={`rounded-xl border shadow-sm p-4 flex flex-col gap-3 ${isTop ? 'border-teal-300 bg-teal-500/10' : 'border-slate-700/50 bg-slate-800'}`}
+                          className={`border p-4 flex flex-col gap-3 ${isTop ? 'border-teal-300/60 bg-teal-500/10' : 'border-slate-700/40 bg-slate-800/30'}`}
                         >
                           {isTop && (
                             <p className="text-xs font-semibold text-teal-400 uppercase tracking-wide">Top Recommendation</p>
@@ -356,7 +356,7 @@ export default function BundleView() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {savedBundles.map(bundle => (
-              <div key={bundle.id} className="border border-slate-700 rounded-xl p-4">
+              <div key={bundle.id} className="border border-slate-700/40 bg-slate-800/20 p-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-semibold text-sm text-slate-100">{bundle.name}</p>
                   <div className="flex gap-2">
