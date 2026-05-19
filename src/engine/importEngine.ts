@@ -71,6 +71,20 @@ function excelSerialToYearMonth(serial: number): string {
   return fmtDate(date, 'yyyy-MM')
 }
 
+// Header aliases for OPEX columns — matches case-insensitively
+const OPEX_DATE_HEADERS = ['date', 'month', 'period', 'entry date']
+const OPEX_AMOUNT_HEADERS = ['amount', 'cost', 'expense', 'total', 'value', 'price']
+const OPEX_NAME_HEADERS = ['name', 'description', 'item', 'expense name', 'vendor', 'notes', 'detail']
+
+function findColIndex(headers: string[], aliases: string[]): number {
+  const lower = headers.map(h => (h ?? '').toString().toLowerCase().trim())
+  for (const alias of aliases) {
+    const idx = lower.indexOf(alias)
+    if (idx !== -1) return idx
+  }
+  return -1
+}
+
 export async function importOpexXLSX(file: File): Promise<ImportResult> {
   const buffer = await file.arrayBuffer()
   const workbook = XLSX.read(buffer, { type: 'array' })
@@ -81,29 +95,71 @@ export async function importOpexXLSX(file: File): Promise<ImportResult> {
   const sheet = workbook.Sheets[sheetName]
   const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as unknown[][]
 
-  // Row 0 is header/summary — skip it. Parse right side cols 4, 5, 6
+  if (rows.length < 2) {
+    return { added: 0, total: 0, skipped: 0, errors: ['XLSX file has no data rows.'] }
+  }
+
+  // Detect header row — try row 0 first, then row 1 (some sheets have a title in row 0)
+  const headerRow0 = (rows[0] ?? []).map(c => String(c ?? ''))
+  const dateIdx0 = findColIndex(headerRow0, OPEX_DATE_HEADERS)
+  const amtIdx0 = findColIndex(headerRow0, OPEX_AMOUNT_HEADERS)
+  const nameIdx0 = findColIndex(headerRow0, OPEX_NAME_HEADERS)
+
+  let headerRowIdx = 0
+  let dateIdx = dateIdx0
+  let amtIdx = amtIdx0
+  let nameIdx = nameIdx0
+
+  if ((dateIdx < 0 || amtIdx < 0) && rows.length > 1) {
+    const headerRow1 = (rows[1] ?? []).map(c => String(c ?? ''))
+    const di1 = findColIndex(headerRow1, OPEX_DATE_HEADERS)
+    const ai1 = findColIndex(headerRow1, OPEX_AMOUNT_HEADERS)
+    const ni1 = findColIndex(headerRow1, OPEX_NAME_HEADERS)
+    if (di1 >= 0 && ai1 >= 0) {
+      headerRowIdx = 1; dateIdx = di1; amtIdx = ai1; nameIdx = ni1
+    }
+  }
+
+  if (dateIdx < 0 || amtIdx < 0) {
+    return {
+      added: 0, total: 0, skipped: 0,
+      errors: [
+        `Could not find required columns. Need a "Date/Month" column and an "Amount/Cost" column. ` +
+        `Found headers: ${(rows[headerRowIdx] ?? []).filter(Boolean).join(', ')}`,
+      ],
+    }
+  }
+
   const entries: OpexEntry[] = []
   let skipped = 0
 
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerRowIdx + 1; i < rows.length; i++) {
     const row = rows[i]
     if (!row) continue
-    const dateSerial = row[4]
-    const amount = row[5]
-    const rawName = row[6]
+    const rawDate = row[dateIdx]
+    const amount = row[amtIdx]
+    const rawName = nameIdx >= 0 ? row[nameIdx] : null
 
-    if (typeof dateSerial !== 'number' || typeof amount !== 'number' || amount <= 0) {
-      skipped++
-      continue
+    // Date can be Excel serial (number) or a string like "2024-03" or "March 2024"
+    let month: string
+    if (typeof rawDate === 'number') {
+      month = excelSerialToYearMonth(rawDate)
+    } else if (typeof rawDate === 'string' && rawDate.trim()) {
+      const d = new Date(rawDate.trim())
+      if (isNaN(d.getTime())) { skipped++; continue }
+      month = fmtDate(d, 'yyyy-MM')
+    } else {
+      skipped++; continue
     }
+
+    const amt = typeof amount === 'number' ? amount : parseFloat(String(amount ?? ''))
+    if (isNaN(amt) || amt <= 0) { skipped++; continue }
 
     const name = typeof rawName === 'string' ? rawName.trim() : String(rawName ?? '').trim()
     if (!name) { skipped++; continue }
 
-    const month = excelSerialToYearMonth(dateSerial)
     const category = detectOpexCategory(name)
-
-    entries.push({ name, category, amount, month, notes: '' })
+    entries.push({ name, category, amount: amt, month, notes: '' })
   }
 
   if (entries.length === 0) {

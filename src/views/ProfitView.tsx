@@ -69,8 +69,8 @@ function buildDrafts(products: { name: string }[], costData: ProductCostData[]):
       return {
         productName: p.name,
         isPerCase,
-        unitCostText: isPerCase ? '' : existing.unitCost.toFixed(2),
-        casePriceText: isPerCase ? existing.casePrice.toFixed(2) : '',
+        unitCostText: isPerCase ? '' : (existing.unitCost ?? 0).toFixed(2),
+        casePriceText: isPerCase ? (existing.casePrice ?? 0).toFixed(2) : '',
         unitsPerCaseText: isPerCase ? String(existing.unitsPerCase) : '',
       }
     }
@@ -465,8 +465,8 @@ export default function ProfitView() {
                 <tr key={r.name} className="border-b border-slate-800 hover:bg-slate-700/50">
                   <td className="px-4 py-2 font-medium text-slate-100 max-w-40 truncate">{r.name}</td>
                   <td className="px-4 py-2 text-slate-400">{r.category}</td>
-                  <td className="px-4 py-2 font-mono text-slate-300">{r.unitCost !== null ? `$${r.unitCost.toFixed(3)}` : '—'}</td>
-                  <td className="px-4 py-2 font-mono text-slate-300">${r.avgPrice.toFixed(2)}</td>
+                  <td className="px-4 py-2 font-mono text-slate-300">{r.unitCost != null ? `$${r.unitCost.toFixed(3)}` : '—'}</td>
+                  <td className="px-4 py-2 font-mono text-slate-300">${(r.avgPrice ?? 0).toFixed(2)}</td>
                   <td className="px-4 py-2 font-mono font-semibold"
                     style={{ color: r.marginPercent !== null ? marginColor(r.marginPercent) : '#9ca3af' }}>
                     {r.marginPercent !== null ? `${r.marginPercent.toFixed(1)}%` : '—'}

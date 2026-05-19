@@ -68,7 +68,7 @@ export default function ForecastView() {
 
   // Progress through this week
   const daysWithData = thisWeek.days.filter(d => d.actualRevenue !== null).length
-  const progressPct = daysWithData > 0 ? Math.min(100, (thisWeek.actualTotal / thisWeek.projectedTotal) * 100) : 0
+  const progressPct = daysWithData > 0 && thisWeek.projectedTotal > 0 ? Math.min(100, (thisWeek.actualTotal / thisWeek.projectedTotal) * 100) : 0
   const onTrack = thisWeek.projectedTotal > 0 && thisWeek.actualTotal >= (thisWeek.projectedTotal * (daysWithData / 7) * 0.9)
 
   // Chart data for this week

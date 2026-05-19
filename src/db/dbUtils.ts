@@ -17,7 +17,19 @@ export async function upsertTransactions(transactions: Omit<SalesTransaction, 'i
     (await db.salesTransactions.where('transactionID').anyOf(ids).toArray()).map(t => t.transactionID)
   )
   const toAdd = transactions.filter(t => !existing.has(t.transactionID))
-  if (toAdd.length > 0) await db.salesTransactions.bulkAdd(toAdd)
+  if (toAdd.length === 0) return 0
+  // bulkAdd throws on unique constraint violations — use bulkPut to handle any
+  // duplicate transactionIDs that slipped through the pre-filter (e.g., concurrent syncs).
+  try {
+    await db.salesTransactions.bulkAdd(toAdd)
+  } catch {
+    // Fall back to one-by-one put to maximise rows saved on partial conflict
+    let added = 0
+    for (const tx of toAdd) {
+      try { await db.salesTransactions.add(tx); added++ } catch { /* duplicate — skip */ }
+    }
+    return added
+  }
   return toAdd.length
 }
 

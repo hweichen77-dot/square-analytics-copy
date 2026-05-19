@@ -20,7 +20,14 @@ function parseCurrency(value: string): number {
 }
 
 function generateFallbackID(row: Record<string, string>, index: number): string {
-  return `import-${index}-${Object.values(row).join('-').slice(0, 40)}`
+  // Use index + a simple hash of all values to avoid collisions when multiple files
+  // have identical-looking rows at the same row index.
+  const content = Object.values(row).join('\x00')
+  let hash = 0
+  for (let i = 0; i < content.length; i++) {
+    hash = (Math.imul(31, hash) + content.charCodeAt(i)) | 0
+  }
+  return `import-${index}-${(hash >>> 0).toString(16)}`
 }
 
 function looksLikeCashRef(value: string): boolean {
