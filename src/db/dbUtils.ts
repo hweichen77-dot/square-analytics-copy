@@ -180,7 +180,7 @@ export async function restoreAllData(json: string): Promise<{ transactions: numb
   // All validation passed — now it's safe to clear and restore
   await clearAllData()
 
-  if (txToAdd.length) await db.salesTransactions.bulkAdd(txToAdd as unknown as SalesTransaction[])
+  if (txToAdd.length) await db.salesTransactions.bulkPut(txToAdd as unknown as SalesTransaction[])
   if (catToAdd.length) await db.catalogueProducts.bulkAdd(catToAdd as unknown as CatalogueProduct[])
   if (costToAdd.length) await db.productCostData.bulkAdd(costToAdd as unknown as ProductCostData[])
   if (overridesRaw.length) await db.categoryOverrides.bulkAdd(overridesRaw.map(stripId) as unknown as CategoryOverride[])

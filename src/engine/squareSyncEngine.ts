@@ -1,7 +1,7 @@
 import { subDays } from 'date-fns'
 import { useAuthStore } from '../store/authStore'
 import { refreshAccessToken } from './squareAuth'
-import { fetchOrders, fetchCatalogue, fetchInventory, fetchTeamMembers } from './squareAPIClient'
+import { fetchOrders, fetchCatalogue, fetchInventory, fetchTeamMembers, fetchCustomersByIds } from './squareAPIClient'
 import type { SquareOrder, SquareCatalogItem } from './squareAPIClient'
 import { upsertTransactions, upsertCatalogueProducts } from '../db/dbUtils'
 import type { SalesTransaction, CatalogueProduct } from '../types/models'
@@ -156,15 +156,35 @@ async function _runSyncImpl(
   onStatus({ phase: 'orders', message: 'Fetching orders...', ordersAdded: 0, productsAdded: 0 })
 
   const endDate = new Date()
-  // Incremental: resume from last sync (minus 5 min overlap) instead of full re-fetch
-  const startDate = lastSyncDate
-    ? new Date(new Date(lastSyncDate).getTime() - 5 * 60 * 1000)
-    : subDays(endDate, daysBack)
+  // Incremental: resume from last sync (minus 5 min overlap). Always honour daysBack —
+  // if the user increases it, or this is the first sync, start from the daysBack window.
+  const daysBackStart = subDays(endDate, daysBack)
+  const lastSyncMs = lastSyncDate ? new Date(new Date(lastSyncDate).getTime() - 5 * 60 * 1000) : null
+  const startDate = lastSyncMs && lastSyncMs > daysBackStart ? lastSyncMs : daysBackStart
   const orders = await fetchOrders(accessToken, locationID, startDate, endDate)
   const txRows = orders.flatMap(o => {
     const tx = orderToTransaction(o, employeeMap)
     return tx ? [tx] : []
   })
+
+  // Resolve customer IDs → display names (batch-retrieve, best-effort)
+  const customerIDsToFetch = [...new Set(txRows.map(t => t.customerID).filter((id): id is string => !!id))]
+  const customerMap: Record<string, string> = {}
+  try {
+    const customers = await fetchCustomersByIds(accessToken, customerIDsToFetch)
+    for (const c of customers) {
+      const name = [c.given_name, c.family_name].filter(Boolean).join(' ')
+      if (name) customerMap[c.id] = name
+    }
+  } catch {
+    // Non-fatal — sync continues without customer names
+  }
+  for (const tx of txRows) {
+    if (tx.customerID && customerMap[tx.customerID]) {
+      tx.customerName = customerMap[tx.customerID]
+    }
+  }
+
   const ordersAdded = await upsertTransactions(txRows)
 
   onStatus({ phase: 'catalogue', message: 'Fetching catalogue...', ordersAdded, productsAdded: 0 })

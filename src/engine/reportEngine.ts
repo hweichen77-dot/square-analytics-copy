@@ -523,7 +523,8 @@ function isCash(method: string): boolean {
   const hasDigits  = /[0-9]/.test(m)
   const noSpaces   = !/\s/.test(m)
   const isKnownCard = /visa|mastercard|amex|american.express|discover|jcb|diners|unionpay|eftpos|interac/i.test(m)
-  return hasLetters && hasDigits && noSpaces && m.length >= 4 && !isKnownCard
+  // Cap at 20 chars: Square cash refs are 8-12 chars; longer strings are device tokens / Apple Pay IDs
+  return hasLetters && hasDigits && noSpaces && m.length >= 4 && m.length <= 20 && !isKnownCard
 }
 
 export interface CashDayRow {

@@ -103,6 +103,12 @@ function buildProfiles(transactions: SalesTransaction[]): {
     cohorts[key].add(cid)
   }
 
+  // Latest month we have any data for — cohorts whose offset month exceeds this
+  // haven't had a chance to return yet, so exclude them from the denominator.
+  const allMonths = Object.values(byCustomer).flat().map(tx => format(tx.date, 'yyyy-MM'))
+  const sortedMonths = allMonths.sort()
+  const latestDataMonth = sortedMonths.length ? sortedMonths[sortedMonths.length - 1] : ''
+
   const offsets: Record<number, { returned: number; total: number }> = {}
   for (const [cohortMonth, customerIDs] of Object.entries(cohorts)) {
     for (let offset = 1; offset <= 6; offset++) {
@@ -110,6 +116,9 @@ function buildProfiles(transactions: SalesTransaction[]): {
       const tMonth = m + offset > 12
         ? `${y + Math.floor((m + offset - 1) / 12)}-${String(((m + offset - 1) % 12) + 1).padStart(2, '0')}`
         : `${y}-${String(m + offset).padStart(2, '0')}`
+
+      // Only count this cohort if the target month has already occurred in our data
+      if (tMonth > latestDataMonth) continue
 
       let returned = 0
       for (const cid of customerIDs) {

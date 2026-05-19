@@ -205,6 +205,30 @@ export async function fetchTeamMembers(token: string): Promise<SquareTeamMember[
   return members
 }
 
+export interface SquareCustomer {
+  id: string
+  given_name?: string
+  family_name?: string
+  email_address?: string
+  phone_number?: string
+}
+
+export async function fetchCustomersByIds(token: string, ids: string[]): Promise<SquareCustomer[]> {
+  if (ids.length === 0) return []
+  const customers: SquareCustomer[] = []
+  // Batch-retrieve in chunks of 100 (Square API limit)
+  for (let i = 0; i < ids.length; i += 100) {
+    const chunk = ids.slice(i, i + 100)
+    const data = await squareRequest(token, 'POST', `${BASE}/customers/batch-retrieve`, { customer_ids: chunk }) as {
+      responses?: { customer?: SquareCustomer; errors?: unknown[] }[]
+    }
+    for (const r of data.responses ?? []) {
+      if (r.customer) customers.push(r.customer)
+    }
+  }
+  return customers
+}
+
 export async function fetchInventory(token: string, locationID: string): Promise<SquareInventoryCount[]> {
   const counts: SquareInventoryCount[] = []
   let cursor: string | undefined

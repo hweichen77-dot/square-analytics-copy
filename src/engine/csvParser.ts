@@ -113,7 +113,7 @@ export function parseCSVContent(content: string): CSVParseResult {
     const dateStr = (() => {
       const d = get('Date', 'Transaction Date', 'Created At', 'Sale Date')
       const t = get('Time')
-      if (d && t) return `${d}T${t}`
+      if (d && t) return `${d} ${t}`
       return d
     })()
 

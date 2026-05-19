@@ -171,14 +171,16 @@ export async function importOpexXLSX(file: File): Promise<ImportResult> {
   const existingSet = new Set(existing.map(e => `${e.name}|${e.month}|${e.amount}`))
 
   let added = 0
-  for (const entry of entries) {
-    const key = `${entry.name}|${entry.month}|${entry.amount}`
-    if (!existingSet.has(key)) {
-      await db.opexEntries.add(entry)
-      existingSet.add(key)
-      added++
+  await db.transaction('rw', db.opexEntries, async () => {
+    for (const entry of entries) {
+      const key = `${entry.name}|${entry.month}|${entry.amount}`
+      if (!existingSet.has(key)) {
+        await db.opexEntries.add(entry)
+        existingSet.add(key)
+        added++
+      }
     }
-  }
+  })
 
   return { added, total: entries.length, skipped, errors: [] }
 }
