@@ -16,6 +16,9 @@ export interface SalesTransaction {
   hour: number
   customerID?: string
   customerName?: string
+  // 'api' = Square Orders API sync, 'csv' = CSV/XLSX import, 'shopify' = Shopify CSV
+  // Used to detect CSV+API overlap that causes duplicate transaction counts
+  source?: 'api' | 'csv' | 'shopify'
   // Per-line-item prices from Square sync — enables exact per-product revenue (not even-split)
   lineItems?: TransactionLineItem[]
   // Square financial detail columns (populated when CSV has them)

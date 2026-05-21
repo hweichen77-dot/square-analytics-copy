@@ -22,7 +22,7 @@ function AnomalyRow({ anomaly }: { anomaly: AnomalyDay }) {
       <div className={`w-2 h-2 rounded-full shrink-0 ${isAbove ? 'bg-emerald-500' : 'bg-red-400'}`} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-slate-200">{dayLabel}</p>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-200 mt-0.5">
           Expected ~{formatCurrency(expectedRevenue)}
         </p>
       </div>
@@ -66,7 +66,7 @@ export default function AnomalyView() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-xl font-bold text-slate-100">Anomaly Alerts</h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <p className="text-sm text-slate-200 mt-1">
           Days that were unusually above or below your typical revenue for that day of the week.
         </p>
       </div>
@@ -75,7 +75,7 @@ export default function AnomalyView() {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4 text-center">
           <p className="text-xl font-bold text-slate-100">{anomalies.length}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Total anomalies</p>
+          <p className="text-xs text-slate-200 mt-0.5">Total anomalies</p>
         </div>
         <div className="bg-emerald-500/10 border border-emerald-500/30 p-4 text-center">
           <p className="text-2xl font-bold text-emerald-400">{aboveCount}</p>
@@ -88,7 +88,7 @@ export default function AnomalyView() {
       </div>
 
       {anomalies.length === 0 ? (
-        <div className="bg-slate-800/30 border border-slate-700/40 p-8 text-center text-slate-400 text-sm">
+        <div className="bg-slate-800/30 border border-slate-700/40 p-8 text-center text-slate-200 text-sm">
           No anomalous days detected. Your revenue is remarkably consistent!
         </div>
       ) : (
@@ -102,7 +102,7 @@ export default function AnomalyView() {
                 className={`px-4 py-2.5 text-sm font-medium transition-colors ${
                   filter === f
                     ? 'border-b-2 border-teal-500 text-teal-400'
-                    : 'text-slate-400 hover:text-slate-300'
+                    : 'text-slate-200 hover:text-slate-300'
                 }`}
               >
                 {f === 'all' ? `All (${anomalies.length})` : f === 'above' ? `Above (${aboveCount})` : `Below (${belowCount})`}
@@ -112,7 +112,7 @@ export default function AnomalyView() {
 
           {/* Anomaly list */}
           {filtered.length === 0 ? (
-            <div className="p-8 text-center text-sm text-slate-400">No {filter} anomalies.</div>
+            <div className="p-8 text-center text-sm text-slate-200">No {filter} anomalies.</div>
           ) : (
             <div>
               {filtered.map((a, i) => <AnomalyRow key={i} anomaly={a} />)}
@@ -121,7 +121,7 @@ export default function AnomalyView() {
         </div>
       )}
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-200">
         A day is flagged as anomalous when its revenue is more than 2.0 standard deviations from the mean for that day of the week.
         Strong anomalies are more than 2.5 standard deviations away.
       </p>

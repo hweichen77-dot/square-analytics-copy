@@ -38,7 +38,7 @@ export function TopProductsChart({ products }: TopProductsChartProps) {
               className={`px-2.5 py-1 text-xs font-medium capitalize transition-colors duration-150 cursor-pointer ${
                 mode === m
                   ? 'bg-teal-500/15 text-teal-400'
-                  : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
+                  : 'text-slate-200 hover:text-slate-300 hover:bg-slate-700/50'
               }`}
             >
               {m === 'revenue' ? 'By Revenue' : 'By Qty'}
@@ -48,12 +48,13 @@ export function TopProductsChart({ products }: TopProductsChartProps) {
       </div>
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 16, left: 8, bottom: 0 }}>
-          <XAxis type="number" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false}
+          <XAxis type="number" tick={{ fontSize: 10, fill: '#cbd5e1' }} axisLine={false} tickLine={false}
             tickFormatter={v => mode === 'revenue' ? `$${v}` : String(v)} />
-          <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#94A3B8' }} width={120} axisLine={false} tickLine={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: '#cbd5e1' }} width={120} axisLine={false} tickLine={false} />
           <Tooltip
-            contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
-            labelStyle={{ color: '#94A3B8' }}
+            contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
+            labelStyle={{ color: '#ffffff', fontWeight: 600 }}
+            itemStyle={{ color: '#ffffff' }}
             formatter={(v: number, _n, props) => [
               mode === 'revenue' ? formatCurrency(v) : `${v} units`,
               props.payload?.fullName ?? '',

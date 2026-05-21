@@ -15,13 +15,14 @@ export function CategoryBreakdownChart({ data }: CategoryBreakdownChartProps) {
       <div className="flex gap-6 items-center">
         <ResponsiveContainer width={180} height={180}>
           <PieChart>
-            <Pie data={data} dataKey="revenue" cx="50%" cy="50%" innerRadius={50} outerRadius={80} strokeWidth={0}>
+            <Pie data={data} dataKey="revenue" nameKey="category" cx="50%" cy="50%" innerRadius={50} outerRadius={80} strokeWidth={0}>
               {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
             </Pie>
             <Tooltip
-              contentStyle={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
-              labelStyle={{ color: '#94A3B8' }}
-              formatter={(v: number) => formatCurrency(v)}
+              contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
+              labelStyle={{ color: '#ffffff', fontWeight: 600 }}
+              itemStyle={{ color: '#ffffff' }}
+              formatter={(v: number) => [formatCurrency(v), '']}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -29,8 +30,8 @@ export function CategoryBreakdownChart({ data }: CategoryBreakdownChartProps) {
           {data.map((cat, i) => (
             <div key={cat.category} className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-              <span className="flex-1 truncate text-slate-400 text-xs">{cat.category}</span>
-              <span className="text-slate-400 text-xs">{formatPercent(cat.percentage)}</span>
+              <span className="flex-1 truncate text-slate-200 text-xs">{cat.category}</span>
+              <span className="text-slate-200 text-xs">{formatPercent(cat.percentage)}</span>
               <span className="text-slate-200 text-xs font-medium font-mono">{formatCurrency(cat.revenue)}</span>
             </div>
           ))}

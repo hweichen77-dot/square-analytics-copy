@@ -77,6 +77,7 @@ function orderToTransaction(order: SquareOrder, employeeMap: Record<string, stri
     itemDescription: description,
     dayOfWeek: date.getDay() + 1,
     hour: date.getHours(),
+    source: 'api',
   }
   if (lineItemPrices.length > 0) tx.lineItems = lineItemPrices
   return tx

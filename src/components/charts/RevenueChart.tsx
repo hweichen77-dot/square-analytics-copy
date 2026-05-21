@@ -48,8 +48,8 @@ export function RevenueChart({ daily, weekly, monthly, prevDaily, prevWeekly, pr
               onClick={() => setShowComparison(v => !v)}
               className={`px-2.5 py-1 text-xs font-medium transition-colors duration-150 cursor-pointer border ${
                 showComparison
-                  ? 'border-slate-500 text-slate-300 bg-slate-700/40'
-                  : 'border-slate-700 text-slate-500 hover:text-slate-400'
+                  ? 'border-slate-500 text-slate-100 bg-slate-700/40'
+                  : 'border-slate-700 text-slate-300 hover:text-slate-400'
               }`}
             >
               vs prev
@@ -63,7 +63,7 @@ export function RevenueChart({ daily, weekly, monthly, prevDaily, prevWeekly, pr
                 className={`px-2.5 py-1 text-xs font-medium transition-colors duration-150 cursor-pointer ${
                   granularity === g
                     ? 'bg-teal-500/15 text-teal-400'
-                    : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/50'
+                    : 'text-slate-200 hover:text-slate-300 hover:bg-slate-700/50'
                 }`}
               >
                 {g}
@@ -81,8 +81,8 @@ export function RevenueChart({ daily, weekly, monthly, prevDaily, prevWeekly, pr
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.23 0.006 55)" />
-          <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} interval="preserveStartEnd" axisLine={{ stroke: 'oklch(0.23 0.006 55)' }} tickLine={false} />
-          <YAxis tickFormatter={shortCurrency} tick={{ fontSize: 11, fill: '#94a3b8' }} width={48} axisLine={false} tickLine={false} />
+          <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#cbd5e1' }} interval="preserveStartEnd" axisLine={{ stroke: 'oklch(0.23 0.006 55)' }} tickLine={false} />
+          <YAxis tickFormatter={shortCurrency} tick={{ fontSize: 11, fill: '#cbd5e1' }} width={48} axisLine={false} tickLine={false} />
           <Tooltip
             contentStyle={{ background: 'oklch(0.17 0.007 55)', border: '1px solid oklch(0.26 0.006 55)', borderRadius: '4px', fontSize: '12px' }}
             labelStyle={{ color: '#cbd5e1' }}

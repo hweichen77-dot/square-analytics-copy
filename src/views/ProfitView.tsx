@@ -3,9 +3,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   ScatterChart, Scatter, PieChart, Pie, Legend,
 } from 'recharts'
-import { useFilteredTransactions, useProductCostData, useCatalogueProducts } from '../db/useTransactions'
-import { useDateRangeStore } from '../store/dateRangeStore'
-import { computeProductStats } from '../engine/analyticsEngine'
+import { useProductCostData, useCatalogueProducts } from '../db/useTransactions'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { EmptyState } from '../components/ui/EmptyState'
 import { db } from '../db/database'
 import { formatCurrency } from '../utils/format'
@@ -190,9 +189,9 @@ function CostManagementModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
           <div>
             <h2 className="text-lg font-bold text-slate-100">Manage Costs</h2>
-            <p className="text-xs text-slate-400">{products.length} products</p>
+            <p className="text-xs text-slate-200">{products.length} products</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xl">×</button>
+          <button onClick={onClose} className="text-slate-200 hover:text-slate-200 text-xl">×</button>
         </div>
 
         <div className="px-6 py-3 border-b border-slate-700/50">
@@ -208,11 +207,11 @@ function CostManagementModal({
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-slate-900 border-b border-slate-700/50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-400">Product</th>
-                <th className="px-4 py-2 text-center text-xs font-semibold text-slate-400 w-20">Mode</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-400 w-36">Unit / Case Price</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-400 w-24">Units/Case</th>
-                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-400 w-28">Eff. Cost</th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-200">Product</th>
+                <th className="px-4 py-2 text-center text-xs font-semibold text-slate-200 w-20">Mode</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-200 w-36">Unit / Case Price</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-200 w-24">Units/Case</th>
+                <th className="px-4 py-2 text-right text-xs font-semibold text-slate-200 w-28">Eff. Cost</th>
               </tr>
             </thead>
             <tbody>
@@ -223,7 +222,7 @@ function CostManagementModal({
                     <td className="px-4 py-2 text-slate-100 truncate max-w-48">{draft.productName}</td>
                     <td className="px-4 py-2 text-center">
                       <button
-                        className={`text-xs px-2 py-0.5 rounded-full border ${draft.isPerCase ? 'bg-teal-500/15 text-teal-400 border-teal-500/30' : 'border-slate-700 text-slate-400'}`}
+                        className={`text-xs px-2 py-0.5 rounded-full border ${draft.isPerCase ? 'bg-teal-500/15 text-teal-400 border-teal-500/30' : 'border-slate-700 text-slate-200'}`}
                         onClick={() => update(draft.productName, { isPerCase: !draft.isPerCase })}
                       >
                         Case
@@ -251,10 +250,10 @@ function CostManagementModal({
                           value={draft.unitsPerCaseText}
                           onChange={e => update(draft.productName, { unitsPerCaseText: e.target.value })}
                         />
-                      ) : <span className="text-slate-400">—</span>}
+                      ) : <span className="text-slate-200">—</span>}
                     </td>
                     <td className="px-4 py-2 text-right font-mono font-semibold text-sm">
-                      {eff !== null ? `$${eff.toFixed(3)}` : <span className="text-slate-400">—</span>}
+                      {eff !== null ? `$${eff.toFixed(3)}` : <span className="text-slate-200">—</span>}
                     </td>
                   </tr>
                 )
@@ -264,7 +263,7 @@ function CostManagementModal({
         </div>
 
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700/50">
-          <p className="text-xs text-slate-400">Toggle 'Case' to enter bulk pricing.</p>
+          <p className="text-xs text-slate-200">Toggle 'Case' to enter bulk pricing.</p>
           <button onClick={saveAll} className="px-4 py-2 text-sm bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-600">
             Save All
           </button>
@@ -275,8 +274,7 @@ function CostManagementModal({
 }
 
 export default function ProfitView() {
-  const { range } = useDateRangeStore()
-  const transactions = useFilteredTransactions(range)
+  const { transactions, productStats: cachedStats, totalRevenue } = useAnalytics()
   const costData = useProductCostData()
   const catalogueProducts = useCatalogueProducts()
   const [showCostSheet, setShowCostSheet] = useState(false)
@@ -284,7 +282,7 @@ export default function ProfitView() {
   const [sortDesc, setSortDesc] = useState(true)
 
   const { rawStats, profitRows } = useMemo(() => {
-    const stats = computeProductStats(transactions)
+    const stats = cachedStats
     const byName = Object.fromEntries(costData.map((c: ProductCostData) => [c.productName, c]))
     const byNameLower = Object.fromEntries(costData.map((c: ProductCostData) => [c.productName.toLowerCase().trim(), c]))
     // Build case-insensitive catalogue price lookup (selling price from Square).
@@ -305,21 +303,24 @@ export default function ProfitView() {
       return catPriceLower[strippedBase] ?? null
     }
     function stripStar(n: string) { return n.startsWith('*') ? n.slice(1).trim() : n }
+    // Normalizes product names for fuzzy matching: strips size/variant suffixes
+    function normalizeForLookup(n: string): string[] {
+      const clean = stripStar(n).trim()
+      const lower = clean.toLowerCase()
+      const base = baseName(clean)
+      const baseLower = base.toLowerCase()
+      // Also strip trailing size/variant patterns like " - Large", " - 16oz", "/L", etc.
+      const noVariant = lower.replace(/\s*[-/]\s*(sm|md|lg|xl|xxl|small|medium|large|x-?large|\d+\s*oz|\d+\s*ml)\s*$/i, '').trim()
+      const noParens  = lower.replace(/\s*\([^)]*\)\s*/g, '').trim()
+      return [clean, base, clean.toLowerCase(), baseLower, noVariant, noParens].filter(Boolean)
+    }
     function lookupCost(name: string) {
-      const stripped = stripStar(name)
-      const lower = name.toLowerCase().trim()
-      const base = baseName(name)
-      const baseLower = base.toLowerCase().trim()
-      const strippedLower = stripped.toLowerCase().trim()
-      const strippedBase = baseName(stripped).toLowerCase().trim()
-      return byName[name]
-        ?? byName[base]
-        ?? byName[stripped]
-        ?? byName[baseName(stripped)]
-        ?? byNameLower[lower]
-        ?? byNameLower[baseLower]
-        ?? byNameLower[strippedLower]
-        ?? byNameLower[strippedBase]
+      const candidates = normalizeForLookup(name)
+      for (const c of candidates) {
+        if (byName[c])      return byName[c]
+        if (byNameLower[c]) return byNameLower[c]
+      }
+      return undefined
     }
     const rows: ProfitRow[] = stats.map(p => {
       const c = lookupCost(p.name)
@@ -344,17 +345,21 @@ export default function ProfitView() {
       }
     })
     return { rawStats: stats, profitRows: rows }
-  }, [transactions, costData, catalogueProducts])
+  }, [cachedStats, costData, catalogueProducts])
 
   const sortedRows = useMemo(() => {
     return [...profitRows].sort((a, b) => {
-      const av = a[sortKey] ?? (sortDesc ? -Infinity : Infinity)
-      const bv = b[sortKey] ?? (sortDesc ? -Infinity : Infinity)
-      return sortDesc ? (bv as number) - (av as number) : (av as number) - (bv as number)
+      const av = a[sortKey]
+      const bv = b[sortKey]
+      if (typeof av === 'string' && typeof bv === 'string') {
+        return sortDesc ? bv.localeCompare(av) : av.localeCompare(bv)
+      }
+      const an = (av as number | null) ?? (sortDesc ? -Infinity : Infinity)
+      const bn = (bv as number | null) ?? (sortDesc ? -Infinity : Infinity)
+      return sortDesc ? bn - an : an - bn
     })
   }, [profitRows, sortKey, sortDesc])
 
-  const totalRevenue = useMemo(() => transactions.reduce((s, t) => s + t.netSales, 0), [transactions])
   const totalCost = useMemo(() => profitRows.reduce((s, r) => s + (r.totalCost ?? 0), 0), [profitRows])
   const totalProfit = useMemo(() => profitRows.reduce((s, r) => s + (r.totalProfit ?? 0), 0), [profitRows])
   const coveredRevenue = useMemo(() => profitRows.filter(r => r.hasCostData).reduce((s, r) => s + r.totalRevenue, 0), [profitRows])
@@ -413,7 +418,7 @@ export default function ProfitView() {
           { label: 'Costs Entered', value: `${profitRows.filter(r => r.hasCostData).length}/${rawStats.length}`, color: '#9ca3af' },
         ].map(c => (
           <div key={c.label} className="bg-slate-800/30 border border-slate-700/40 p-4">
-            <p className="text-xs text-slate-400">{c.label}</p>
+            <p className="text-xs text-slate-200">{c.label}</p>
             <p className="text-xl font-bold mt-1 font-mono" style={{ color: c.color }}>{c.value}</p>
           </div>
         ))}
@@ -426,7 +431,7 @@ export default function ProfitView() {
           </p>
           <div className="space-y-1">
             {moneyLosers.map(r => (
-              <div key={r.name} className="flex items-center gap-3 text-sm text-slate-300">
+              <div key={r.name} className="flex items-center gap-3 text-sm text-slate-100">
                 <span className="flex-1">{r.name}</span>
                 <span className="font-mono w-14 text-right text-red-400">{(r.marginPercent ?? 0).toFixed(1)}%</span>
                 <span className="font-mono w-22 text-right text-red-400">{formatCurrency(r.totalProfit ?? 0)}</span>
@@ -452,7 +457,7 @@ export default function ProfitView() {
                 ] as [keyof ProfitRow, string][]).map(([key, label]) => (
                   <th
                     key={key}
-                    className="px-4 py-2.5 font-semibold text-slate-400 text-left cursor-pointer hover:bg-slate-700 select-none"
+                    className="px-4 py-2.5 font-semibold text-slate-200 text-left cursor-pointer hover:bg-slate-700 select-none"
                     onClick={() => toggleSort(key)}
                   >
                     {label}{sortArrow(key)}
@@ -464,18 +469,18 @@ export default function ProfitView() {
               {sortedRows.map(r => (
                 <tr key={r.name} className="border-b border-slate-800 hover:bg-slate-700/50">
                   <td className="px-4 py-2 font-medium text-slate-100 max-w-40 truncate">{r.name}</td>
-                  <td className="px-4 py-2 text-slate-400">{r.category}</td>
-                  <td className="px-4 py-2 font-mono text-slate-300">{r.unitCost != null ? `$${r.unitCost.toFixed(3)}` : '—'}</td>
-                  <td className="px-4 py-2 font-mono text-slate-300">${(r.avgPrice ?? 0).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-slate-200">{r.category}</td>
+                  <td className="px-4 py-2 font-mono text-slate-100">{r.unitCost != null ? `$${r.unitCost.toFixed(3)}` : <span className="text-slate-400 text-[10px]">enter cost</span>}</td>
+                  <td className="px-4 py-2 font-mono text-slate-100">${(r.avgPrice ?? 0).toFixed(2)}</td>
                   <td className="px-4 py-2 font-mono font-semibold"
-                    style={{ color: r.marginPercent !== null ? marginColor(r.marginPercent) : '#9ca3af' }}>
-                    {r.marginPercent !== null ? `${r.marginPercent.toFixed(1)}%` : '—'}
+                    style={{ color: r.marginPercent !== null ? marginColor(r.marginPercent) : '#94a3b8' }}>
+                    {r.marginPercent !== null ? `${r.marginPercent.toFixed(1)}%` : <span className="text-slate-400 font-normal text-[10px]">no cost</span>}
                   </td>
-                  <td className="px-4 py-2 font-mono text-slate-300">{r.unitsSold}</td>
-                  <td className="px-4 py-2 font-mono text-slate-300">{formatCurrency(r.totalRevenue)}</td>
-                  <td className="px-4 py-2 font-mono text-slate-400">{r.totalCost !== null ? formatCurrency(r.totalCost) : '—'}</td>
-                  <td className="px-4 py-2 font-mono font-semibold" style={{ color: (r.totalProfit ?? 0) >= 0 ? '#e2e8f0' : '#f87171' }}>
-                    {r.totalProfit !== null ? formatCurrency(r.totalProfit) : '—'}
+                  <td className="px-4 py-2 font-mono text-slate-100">{r.unitsSold}</td>
+                  <td className="px-4 py-2 font-mono text-slate-100">{formatCurrency(r.totalRevenue)}</td>
+                  <td className="px-4 py-2 font-mono text-slate-200">{r.totalCost !== null ? formatCurrency(r.totalCost) : <span className="text-slate-400 text-[10px]">—</span>}</td>
+                  <td className="px-4 py-2 font-mono font-semibold" style={{ color: r.totalProfit !== null ? ((r.totalProfit >= 0) ? '#e2e8f0' : '#f87171') : '#64748b' }}>
+                    {r.totalProfit !== null ? formatCurrency(r.totalProfit) : <span className="text-slate-400 text-[10px]">—</span>}
                   </td>
                 </tr>
               ))}
@@ -494,7 +499,7 @@ export default function ProfitView() {
               <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
               <Tooltip formatter={(v: number) => formatCurrency(v)} />
               <Bar dataKey="totalProfit" fill="#34D399" radius={[0, 3, 3, 0]}
-                label={{ position: 'right', formatter: (v: number) => formatCurrency(v), fontSize: 10, fill: '#94a3b8' }} />
+                label={{ position: 'right', formatter: (v: number) => formatCurrency(v), fontSize: 10, fill: '#cbd5e1' }} />
             </BarChart>
           </ResponsiveContainer>
         </div>

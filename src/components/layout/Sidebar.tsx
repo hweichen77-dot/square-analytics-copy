@@ -118,7 +118,7 @@ function NavItemFull({ item, badge, onClose }: { item: NavItem; badge?: number; 
         `flex items-center gap-2.5 px-3 py-1.5 mx-2 rounded-sm text-[13px] font-medium transition-all duration-150 cursor-pointer ${
           isActive
             ? 'bg-teal-500/12 text-teal-400'
-            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            : 'text-slate-200 hover:text-slate-200 hover:bg-slate-800/60'
         }`
       }
     >
@@ -150,12 +150,12 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
           <h1 className="font-display text-[14px] font-700 text-slate-100 leading-tight tracking-tight">
             Walley's Analytics
           </h1>
-          <p className="text-[10px] font-medium tracking-[0.08em] uppercase text-slate-300 mt-1.5">
+          <p className="text-[10px] font-medium tracking-[0.08em] uppercase text-slate-100 mt-1.5">
             {txCount.toLocaleString()} transactions
           </p>
         </div>
         {onClose && (
-          <button onClick={onClose} className="lg:hidden p-1 text-slate-400 hover:text-slate-300 -mt-0.5 -mr-1" aria-label="Close menu">
+          <button onClick={onClose} className="lg:hidden p-1 text-slate-200 hover:text-slate-300 -mt-0.5 -mr-1" aria-label="Close menu">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -168,7 +168,7 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
         {NAV_SECTIONS.map((section, si) => (
           <div key={si} role={section.heading ? 'group' : undefined} aria-label={section.heading} className={si > 0 ? 'mt-1' : ''}>
             {section.heading && (
-              <p aria-hidden="true" className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-300 select-none">
+              <p aria-hidden="true" className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-100 select-none">
                 {section.heading}
               </p>
             )}

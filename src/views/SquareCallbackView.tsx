@@ -40,7 +40,7 @@ export default function SquareCallbackView() {
     <div className="flex items-center justify-center min-h-screen">
       <div className="text-center">
         <div className="w-10 h-10 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-slate-400">Connecting to Square…</p>
+        <p className="text-slate-200">Connecting to Square…</p>
       </div>
     </div>
   )

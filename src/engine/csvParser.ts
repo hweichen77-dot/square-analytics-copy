@@ -169,6 +169,7 @@ export function parseCSVContent(content: string): CSVParseResult {
       itemDescription: description.trim(),
       dayOfWeek: date.getDay() + 1,
       hour: date.getHours(),
+      source: 'csv',
     }
 
     // Parse Square financial detail columns when present

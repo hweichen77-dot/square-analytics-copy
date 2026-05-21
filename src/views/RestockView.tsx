@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { useFilteredTransactions, useRestockLogs, useCatalogueProducts } from '../db/useTransactions'
-import { useDateRangeStore } from '../store/dateRangeStore'
+import { useRestockLogs, useCatalogueProducts } from '../db/useTransactions'
 import { computeProductStats } from '../engine/analyticsEngine'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { EmptyState } from '../components/ui/EmptyState'
 import { db } from '../db/database'
 import type { SalesTransaction, RestockLog, CatalogueProduct } from '../types/models'
@@ -166,26 +166,26 @@ function LogRestockModal({ productName, onClose }: { productName: string; onClos
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-slate-100">Log Restock</h2>
-            <p className="text-sm text-slate-400">{productName}</p>
+            <p className="text-sm text-slate-200">{productName}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xl leading-none">×</button>
+          <button onClick={onClose} className="text-slate-200 hover:text-slate-200 text-xl leading-none">×</button>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Restock Date</label>
+            <label className="block text-sm font-medium text-slate-100 mb-1">Restock Date</label>
             <input type="date" className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
               value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Quantity Restocked</label>
+            <label className="block text-sm font-medium text-slate-100 mb-1">Quantity Restocked</label>
             <input type="number" placeholder="e.g. 48"
               className={`w-full border rounded-lg px-3 py-2 text-sm ${error ? 'border-red-400' : 'border-slate-700'}`}
               value={qty} onChange={e => { setQty(e.target.value); setError(false) }} />
             {error && <p className="text-xs text-red-400 mt-1">Enter a valid whole number</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Notes (optional)</label>
+            <label className="block text-sm font-medium text-slate-100 mb-1">Notes (optional)</label>
             <input type="text" placeholder="e.g. Received from supplier"
               className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
               value={notes} onChange={e => setNotes(e.target.value)} />
@@ -193,7 +193,7 @@ function LogRestockModal({ productName, onClose }: { productName: string; onClos
         </div>
 
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200">Cancel</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-200 hover:text-slate-200">Cancel</button>
           <button onClick={save} className="px-4 py-2 text-sm bg-teal-500 text-slate-950 rounded-lg hover:bg-teal-600">
             Save Restock
           </button>
@@ -204,8 +204,7 @@ function LogRestockModal({ productName, onClose }: { productName: string; onClos
 }
 
 export default function RestockView() {
-  const { range } = useDateRangeStore()
-  const transactions = useFilteredTransactions(range)
+  const { transactions } = useAnalytics()
   const restockLogs = useRestockLogs()
   const catalogueProducts = useCatalogueProducts()
   const [productToRestock, setProductToRestock] = useState<string | null>(null)
@@ -234,12 +233,12 @@ export default function RestockView() {
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: 'Total Products', value: alerts.length, color: 'text-slate-100' },
-          { label: 'Out of Stock', value: outOfStockCount, color: outOfStockCount > 0 ? 'text-red-400' : 'text-slate-400' },
-          { label: 'Critical (≤5 days)', value: criticalCount, color: criticalCount > 0 ? 'text-red-400' : 'text-slate-400' },
-          { label: 'Low (6–10 days)', value: lowCount, color: lowCount > 0 ? 'text-orange-400' : 'text-slate-400' },
+          { label: 'Out of Stock', value: outOfStockCount, color: outOfStockCount > 0 ? 'text-red-400' : 'text-slate-200' },
+          { label: 'Critical (≤5 days)', value: criticalCount, color: criticalCount > 0 ? 'text-red-400' : 'text-slate-200' },
+          { label: 'Low (6–10 days)', value: lowCount, color: lowCount > 0 ? 'text-orange-400' : 'text-slate-200' },
         ].map(c => (
           <div key={c.label} className="bg-slate-800/30 border border-slate-700/40 p-4">
-            <p className="text-xs text-slate-400">{c.label}</p>
+            <p className="text-xs text-slate-200">{c.label}</p>
             <p className={`text-2xl font-bold mt-1 ${c.color}`}>{c.value}</p>
           </div>
         ))}
@@ -258,7 +257,7 @@ export default function RestockView() {
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-slate-100 text-sm">{alert.productName}</p>
-                  <p className="text-xs text-slate-400">{alert.category}</p>
+                  <p className="text-xs text-slate-200">{alert.category}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="font-semibold text-sm text-slate-100">
@@ -269,7 +268,7 @@ export default function RestockView() {
                       {alert.stockRemaining <= 0 ? 'OUT OF STOCK' : `${alert.stockRemaining} remaining`}
                     </p>
                   ) : (
-                    <p className="text-xs text-slate-400">No stock data</p>
+                    <p className="text-xs text-slate-200">No stock data</p>
                   )}
                 </div>
                 <button
@@ -289,14 +288,14 @@ export default function RestockView() {
           <h2 className="text-base font-semibold text-slate-100">All Products — Stock Status</h2>
         </div>
         {alerts.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-400">Import CSV sales data to see restock alerts.</div>
+          <div className="p-8 text-center text-sm text-slate-200">Import CSV sales data to see restock alerts.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-slate-900 border-b border-slate-700/50 text-left">
                   {['Product', 'Category', 'Weekly Vel.', 'Est. Stock', 'Days Left', 'Proj. Stockout', 'Last Restocked', 'Status', 'Action'].map(h => (
-                    <th key={h} className="px-4 py-2.5 font-semibold text-slate-400">{h}</th>
+                    <th key={h} className="px-4 py-2.5 font-semibold text-slate-200">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -306,8 +305,8 @@ export default function RestockView() {
                     <td className="px-4 py-2.5">
                       <div className="font-medium text-slate-100">{alert.productName}</div>
                     </td>
-                    <td className="px-4 py-2.5 text-slate-400">{alert.category}</td>
-                    <td className="px-4 py-2.5 font-mono text-slate-300">{alert.weeklyVelocity.toFixed(1)}/wk</td>
+                    <td className="px-4 py-2.5 text-slate-200">{alert.category}</td>
+                    <td className="px-4 py-2.5 font-mono text-slate-100">{alert.weeklyVelocity.toFixed(1)}/wk</td>
                     <td className="px-4 py-2.5 font-mono font-semibold" style={{ color: urgencyColor(alert.urgency) }}>
                       {alert.stockRemaining !== null
                         ? alert.stockRemaining <= 0 ? 'OUT' : alert.stockRemaining
@@ -318,10 +317,10 @@ export default function RestockView() {
                         : alert.daysUntilStockout !== null ? Math.round(alert.daysUntilStockout)
                         : '—'}
                     </td>
-                    <td className="px-4 py-2.5 font-mono text-slate-400">
+                    <td className="px-4 py-2.5 font-mono text-slate-200">
                       {alert.projectedStockoutDate ? format(alert.projectedStockoutDate, 'MMM d') : '—'}
                     </td>
-                    <td className="px-4 py-2.5 text-slate-400">
+                    <td className="px-4 py-2.5 text-slate-200">
                       {alert.lastRestockedDate ? format(alert.lastRestockedDate, 'M/d/yy') : 'Never'}
                     </td>
                     <td className="px-4 py-2.5">

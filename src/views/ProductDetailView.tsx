@@ -146,7 +146,7 @@ export default function ProductDetailView() {
 
   if (!stats) {
     return (
-      <div className="py-20 text-center text-slate-400">
+      <div className="py-20 text-center text-slate-200">
         <p>Product not found.</p>
         <button onClick={() => navigate('/inventory')} className="mt-3 text-teal-400 text-sm underline">← Back</button>
       </div>
@@ -174,11 +174,11 @@ export default function ProductDetailView() {
 
         {/* KPI cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <KpiCard icon="📦" title="Units Sold" value={formatNumber(stats.totalUnitsSold)} />
-          <KpiCard icon="💰" title="Total Revenue" value={formatCurrency(stats.totalRevenue)} />
-          <KpiCard icon="🏷" title="Avg Price" value={formatCurrency(stats.avgPrice)} />
+          <KpiCard title="Units Sold" value={formatNumber(stats.totalUnitsSold)} />
+          <KpiCard title="Total Revenue" value={formatCurrency(stats.totalRevenue)} />
+          <KpiCard title="Avg Price" value={formatCurrency(stats.avgPrice)} />
           {bestMonth && (
-            <KpiCard icon="⭐" title="Best Month" value={bestMonth.label} sub={`${bestMonth.units} units`} />
+            <KpiCard title="Best Month" value={bestMonth.label} sub={`${bestMonth.units} units`} />
           )}
           <MonthOverMonthCard pct={monthOverMonth} />
         </div>
@@ -191,7 +191,7 @@ export default function ProductDetailView() {
           <div className="flex gap-1">
             {(['Daily', 'Weekly', 'Monthly'] as const).map(g => (
               <button key={g} onClick={() => setGranularity(g)}
-                className={`px-2.5 py-1 text-xs rounded-lg font-medium ${granularity === g ? 'bg-teal-500 text-slate-950' : 'text-slate-400 hover:bg-slate-700'}`}>
+                className={`px-2.5 py-1 text-xs rounded-lg font-medium ${granularity === g ? 'bg-teal-500 text-slate-950' : 'text-slate-200 hover:bg-slate-700'}`}>
                 {g}
               </button>
             ))}
@@ -201,12 +201,12 @@ export default function ProductDetailView() {
         {/* Revenue chart */}
         <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-4">
-            <span className="text-xs font-medium text-slate-400">Revenue</span>
-            <span className="flex items-center gap-1 text-xs text-slate-400">
+            <span className="text-xs font-medium text-slate-200">Revenue</span>
+            <span className="flex items-center gap-1 text-xs text-slate-200">
               <span className="inline-block w-4 h-0.5 bg-teal-400 rounded" />Revenue
             </span>
             {maData.length > 0 && (
-              <span className="flex items-center gap-1 text-xs text-slate-400">
+              <span className="flex items-center gap-1 text-xs text-slate-200">
                 <span className="inline-block w-4 h-0.5 bg-orange-400 rounded" style={{ borderTop: '1.5px dashed' }} />3-period avg
               </span>
             )}
@@ -220,11 +220,11 @@ export default function ProductDetailView() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={48} tickFormatter={v => `$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#cbd5e1' }} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 11, fill: '#cbd5e1' }} width={48} tickFormatter={v => `$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} />
               <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: '#94a3b8' }}
+                contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: '#ffffff', fontWeight: 600 }}
                 formatter={(v: number, n: string) => [n === 'revenue' ? formatCurrency(v) : n === 'ma' ? `${formatCurrency(v)} avg` : v, n === 'revenue' ? 'Revenue' : n === 'ma' ? '3-period avg' : n]}
               />
               <Area type="linear" dataKey="revenue" stroke="#14B8A6" fill="url(#revGrad)" strokeWidth={2} dot={{ r: 3, fill: '#14B8A6', strokeWidth: 0 }} activeDot={{ r: 5 }} />
@@ -237,15 +237,15 @@ export default function ProductDetailView() {
 
         {/* Units chart */}
         <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
-          <span className="text-xs font-medium text-slate-400">Units Sold</span>
+          <span className="text-xs font-medium text-slate-200">Units Sold</span>
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={32} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#cbd5e1' }} tickLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 11, fill: '#cbd5e1' }} width={32} />
               <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: '#94a3b8' }}
+                contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: '#ffffff', fontWeight: 600 }}
               />
               <Bar dataKey="units" fill="#14B8A6" fillOpacity={0.75} radius={[3, 3, 0, 0]} maxBarSize={32} />
             </BarChart>
@@ -259,12 +259,12 @@ export default function ProductDetailView() {
         <div className="flex gap-4 items-start">
           {/* Day of week chart */}
           <div className="flex-1 bg-slate-800/30 border border-slate-700/40 p-4 space-y-2">
-            <span className="text-xs font-medium text-slate-400">Sales by Day of Week</span>
+            <span className="text-xs font-medium text-slate-200">Sales by Day of Week</span>
             <ResponsiveContainer width="100%" height={120}>
               <BarChart data={dowData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} width={28} />
-                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
+                <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#cbd5e1' }} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#cbd5e1' }} width={28} />
+                <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }} />
                 <Bar dataKey="count" maxBarSize={32} radius={[3, 3, 0, 0]}>
                   {dowData.map(entry => (
                     <Cell key={entry.dayOfWeek}
@@ -278,11 +278,11 @@ export default function ProductDetailView() {
 
           {/* Pattern indicators */}
           <div className="bg-slate-800/30 border border-slate-700/40 p-4 space-y-4 w-52 shrink-0">
-            <PatternIndicator icon="📅" title="Best Day"
+            <PatternIndicator title="Best Day"
               value={peakDayOfWeek ? dayName(peakDayOfWeek) : 'N/A'} />
-            <PatternIndicator icon="🕐" title="Peak Hour"
+            <PatternIndicator title="Peak Hour"
               value={peakHour !== null ? formatHour(peakHour) : 'N/A'} />
-            <PatternIndicator icon="📈" title="Trend" value={trend ?? 'N/A'}
+            <PatternIndicator title="Trend" value={trend ?? 'N/A'}
               color={trend === 'Growing' ? '#22c55e' : trend === 'Declining' ? '#ef4444' : '#94a3b8'} />
           </div>
         </div>
@@ -292,14 +292,14 @@ export default function ProductDetailView() {
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
           <h2 className="font-semibold text-slate-200">Transaction History</h2>
-          <span className="text-xs text-slate-400">{txRows.length} total</span>
+          <span className="text-xs text-slate-200">{txRows.length} total</span>
         </div>
         {txRows.length === 0 ? (
-          <div className="py-12 text-center text-slate-400 text-sm">No transactions found.</div>
+          <div className="py-12 text-center text-slate-200 text-sm">No transactions found.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-900 text-slate-400 uppercase text-xs">
+              <thead className="bg-slate-900 text-slate-200 uppercase text-xs">
                 <tr>
                   <SortTh label="Date" field="dateDesc" altField="dateAsc" sort={txSort} onSort={setTxSort} />
                   <th className="px-4 py-2 text-left">Time</th>
@@ -313,13 +313,13 @@ export default function ProductDetailView() {
               <tbody className="divide-y divide-slate-700/40">
                 {displayedTx.map((tx, i) => (
                   <tr key={i} className="hover:bg-slate-700/50">
-                    <td className="px-4 py-2 text-slate-400 tabular-nums">{format(tx.date, 'MMM d, yyyy')}</td>
-                    <td className="px-4 py-2 text-slate-400 tabular-nums">{format(tx.date, 'h:mm a')}</td>
+                    <td className="px-4 py-2 text-slate-200 tabular-nums">{format(tx.date, 'MMM d, yyyy')}</td>
+                    <td className="px-4 py-2 text-slate-200 tabular-nums">{format(tx.date, 'h:mm a')}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{tx.qty}</td>
                     <td className="px-4 py-2 text-right tabular-nums">{formatCurrency(tx.unitPrice)}</td>
                     <td className="px-4 py-2 text-right font-medium tabular-nums">{formatCurrency(tx.total)}</td>
-                    <td className="px-4 py-2 text-slate-400">{tx.staffName}</td>
-                    <td className="px-4 py-2 text-slate-400">{tx.paymentMethod || '—'}</td>
+                    <td className="px-4 py-2 text-slate-200">{tx.staffName}</td>
+                    <td className="px-4 py-2 text-slate-200">{tx.paymentMethod || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -338,14 +338,14 @@ export default function ProductDetailView() {
   )
 }
 
-function KpiCard({ icon: _icon, title, value, sub }: { icon: string; title: string; value: string; sub?: string }) {
+function KpiCard({ title, value, sub }: { title: string; value: string; sub?: string }) {
   return (
     <div className="bg-slate-800/30 border border-slate-700/40 p-3 space-y-1">
-      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+      <div className="flex items-center gap-1.5 text-xs text-slate-200">
         {title}
       </div>
       <div className="text-lg font-semibold text-slate-100 tabular-nums">{value}</div>
-      {sub && <div className="text-xs text-slate-400">{sub}</div>}
+      {sub && <div className="text-xs text-slate-200">{sub}</div>}
     </div>
   )
 }
@@ -353,7 +353,7 @@ function KpiCard({ icon: _icon, title, value, sub }: { icon: string; title: stri
 function MonthOverMonthCard({ pct }: { pct: number | null }) {
   return (
     <div className="bg-slate-800/30 border border-slate-700/40 p-3 space-y-1">
-      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+      <div className="flex items-center gap-1.5 text-xs text-slate-200">
         This vs Last Month
       </div>
       {pct !== null ? (
@@ -361,17 +361,17 @@ function MonthOverMonthCard({ pct }: { pct: number | null }) {
           {pct >= 0 ? '↑' : '↓'}{Math.abs(pct).toFixed(0)}%
         </div>
       ) : (
-        <div className="text-lg font-semibold text-slate-400">N/A</div>
+        <div className="text-lg font-semibold text-slate-200">N/A</div>
       )}
     </div>
   )
 }
 
-function PatternIndicator({ icon: _icon, title, value, color = '#e2e8f0' }: { icon: string; title: string; value: string; color?: string }) {
+function PatternIndicator({ title, value, color = '#e2e8f0' }: { title: string; value: string; color?: string }) {
   return (
     <div className="flex items-start gap-3">
       <div>
-        <div className="text-xs text-slate-400">{title}</div>
+        <div className="text-xs text-slate-200">{title}</div>
         <div className="text-sm font-semibold" style={{ color }}>{value}</div>
       </div>
     </div>

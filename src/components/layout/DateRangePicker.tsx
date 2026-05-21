@@ -37,7 +37,7 @@ export function DateRangePicker() {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-700 rounded-lg bg-slate-800 hover:bg-slate-700 hover:border-slate-600 text-slate-300 transition-colors cursor-pointer"
+        className="flex items-center gap-2 px-3 py-1.5 text-sm border border-slate-700 rounded-lg bg-slate-800 hover:bg-slate-700 hover:border-slate-600 text-slate-100 transition-colors cursor-pointer"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -61,7 +61,7 @@ export function DateRangePicker() {
                 className={`w-full text-left px-4 py-2 text-sm transition-colors cursor-pointer ${
                   activePreset.label === p.label
                     ? 'text-teal-400 bg-teal-500/10'
-                    : 'text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+                    : 'text-slate-100 hover:bg-slate-700 hover:text-slate-100'
                 }`}
               >
                 {p.label}

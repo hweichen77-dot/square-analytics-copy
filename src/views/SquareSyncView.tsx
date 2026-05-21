@@ -7,6 +7,9 @@ import { runSquareSync } from '../engine/squareSyncEngine'
 import type { SyncStatus } from '../engine/squareSyncEngine'
 import { useToastStore } from '../store/toastStore'
 import { formatNumber } from '../utils/format'
+import { removeCsvDuplicates } from '../db/dbUtils'
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '../db/database'
 
 type ConnectionState = 'disconnected' | 'connecting' | 'connected'
 
@@ -26,6 +29,30 @@ export default function SquareSyncView() {
   const [connState, setConnState] = useState<ConnectionState>(store.accessToken ? 'connected' : 'disconnected')
 
   const isConnected = !!store.accessToken
+  const [deduping, setDeduping] = useState(false)
+  const sourceCounts = useLiveQuery(async () => {
+    const all = await db.salesTransactions.toArray()
+    const api = all.filter(t => t.source === 'api').length
+    const csv = all.filter(t => t.source === 'csv').length
+    const unknown = all.filter(t => !t.source).length
+    return { api, csv, unknown, total: all.length }
+  }, [])
+
+  async function handleDedup() {
+    setDeduping(true)
+    try {
+      const removed = await removeCsvDuplicates()
+      if (removed > 0) {
+        show(`Removed ${removed} duplicate CSV transactions that overlap with API data.`, 'success')
+      } else {
+        show('No duplicates found. CSV and API data do not overlap.', 'info')
+      }
+    } catch (e) {
+      show(`Dedup failed: ${(e as Error).message}`, 'error')
+    } finally {
+      setDeduping(false)
+    }
+  }
 
   // Keep connState in sync with the auth store (e.g. after OAuth callback sets the token)
   useEffect(() => {
@@ -111,7 +138,7 @@ export default function SquareSyncView() {
     disconnected: {
       bg: 'bg-slate-800 border-slate-700',
       dot: 'bg-gray-400',
-      text: 'text-slate-400',
+      text: 'text-slate-200',
       label: 'Not connected',
       sub: 'Enter your credentials and connect your Square account.',
     },
@@ -135,7 +162,7 @@ export default function SquareSyncView() {
     <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-xl font-bold text-slate-100">Square Sync</h1>
-        <p className="text-sm text-slate-400 mt-1">Automatically import orders and catalogue data from your Square account.</p>
+        <p className="text-sm text-slate-200 mt-1">Automatically import orders and catalogue data from your Square account.</p>
       </div>
 
       {!isConnected && (
@@ -143,7 +170,7 @@ export default function SquareSyncView() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
             <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
           </svg>
-          <p className="text-sm text-slate-400 leading-relaxed">
+          <p className="text-sm text-slate-200 leading-relaxed">
             Square Sync is optional. You can import data via CSV on the{' '}
             <button
               onClick={() => navigate('/import')}
@@ -202,7 +229,7 @@ export default function SquareSyncView() {
         {!isConnected && connState !== 'connecting' && (
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 mb-4">
             <p className="text-xs font-semibold text-blue-400 mb-1">Setup required before connecting</p>
-            <p className="text-xs text-slate-400">In your <span className="text-blue-300">Square Developer Portal</span>, add <span className="font-mono text-teal-400">http://localhost:7329/square/callback</span> as an OAuth redirect URI. Without this, the connection will fail.</p>
+            <p className="text-xs text-slate-200">In your <span className="text-blue-300">Square Developer Portal</span>, add <span className="font-mono text-teal-400">http://localhost:7329/square/callback</span> as an OAuth redirect URI. Without this, the connection will fail.</p>
           </div>
         )}
         <h2 className="font-semibold text-slate-200">Square Application ID</h2>
@@ -213,7 +240,7 @@ export default function SquareSyncView() {
           placeholder="sq0idp-…"
           className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500/30"
         />
-        <label className="block text-sm font-medium text-slate-300 mt-3 mb-1">Application Secret</label>
+        <label className="block text-sm font-medium text-slate-100 mt-3 mb-1">Application Secret</label>
         <input
           type="password"
           value={appSecretInput}
@@ -234,7 +261,7 @@ export default function SquareSyncView() {
             <span className="text-sm text-amber-400 font-medium">Waiting for Square authorisation…</span>
             <button
               onClick={handleCancelConnect}
-              className="px-3 py-1.5 text-sm border border-slate-600 rounded-lg text-slate-400 hover:bg-slate-700/50"
+              className="px-3 py-1.5 text-sm border border-slate-600 rounded-lg text-slate-200 hover:bg-slate-700/50"
             >
               Cancel
             </button>
@@ -248,7 +275,7 @@ export default function SquareSyncView() {
           {locations.length === 0 ? (
             <button
               onClick={handleLoadLocations}
-              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm hover:bg-slate-600"
+              className="px-4 py-2 bg-slate-800 text-slate-100 rounded-lg text-sm hover:bg-slate-600"
             >
               Load Locations
             </button>
@@ -283,7 +310,7 @@ export default function SquareSyncView() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-slate-200">Auto-Sync</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Sync automatically in the background</p>
+              <p className="text-xs text-slate-200 mt-0.5">Sync automatically in the background</p>
             </div>
             <button
               onClick={() => store.setCredentials({ autoSyncEnabled: !store.autoSyncEnabled })}
@@ -300,7 +327,7 @@ export default function SquareSyncView() {
           </div>
           {store.autoSyncEnabled && (
             <div className="flex items-center gap-2">
-              <p className="text-sm text-slate-400 shrink-0">Interval:</p>
+              <p className="text-sm text-slate-200 shrink-0">Interval:</p>
               {([15, 30, 60] as const).map(min => (
                 <button
                   key={min}
@@ -308,7 +335,7 @@ export default function SquareSyncView() {
                   className={`px-3 py-1 text-xs rounded-md border transition-colors ${
                     store.syncIntervalMinutes === min
                       ? 'bg-teal-500/20 border-teal-500/50 text-teal-300'
-                      : 'border-slate-600 text-slate-400 hover:border-slate-500'
+                      : 'border-slate-600 text-slate-200 hover:border-slate-500'
                   }`}
                 >
                   {min}m
@@ -324,13 +351,13 @@ export default function SquareSyncView() {
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-slate-200">Sync Now</h2>
             {store.lastSyncDate && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-200">
                 Last: {new Date(store.lastSyncDate).toLocaleString()} · {formatNumber(store.lastSyncCount)} added
               </p>
             )}
           </div>
           {syncing && syncStatus && (
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+            <div className="flex items-center gap-2 text-sm text-slate-200">
               <div className="w-3.5 h-3.5 border-2 border-slate-600 border-t-teal-400 rounded-full animate-spin shrink-0" />
               {syncStatus.message}
             </div>
@@ -365,10 +392,51 @@ export default function SquareSyncView() {
             {syncing ? 'Syncing…' : 'Start Sync'}
           </button>
           {syncLog.length > 0 && (
-            <div className="mt-3 bg-slate-900 border border-slate-700 rounded-lg p-3 font-mono text-xs text-slate-300 max-h-36 overflow-y-auto space-y-0.5">
+            <div className="mt-3 bg-slate-900 border border-slate-700 rounded-lg p-3 font-mono text-xs text-slate-100 max-h-36 overflow-y-auto space-y-0.5">
               {syncLog.map((line, i) => (
-                <p key={i} className={line.includes('ERROR') ? 'text-red-400' : 'text-slate-300'}>{line}</p>
+                <p key={i} className={line.includes('ERROR') ? 'text-red-400' : 'text-slate-100'}>{line}</p>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Data Source Diagnostics */}
+      {sourceCounts && (sourceCounts.api > 0 || sourceCounts.csv > 0) && (
+        <div className="bg-slate-800/30 border border-slate-700/40 p-5 space-y-3">
+          <h2 className="font-semibold text-slate-200">Data Source Diagnostics</h2>
+          <div className="grid grid-cols-4 gap-3 text-sm">
+            <div className="bg-slate-900/50 rounded-lg p-3">
+              <p className="text-xs text-slate-200">Total Transactions</p>
+              <p className="text-lg font-bold text-slate-100 mt-0.5">{sourceCounts.total.toLocaleString()}</p>
+            </div>
+            <div className="bg-slate-900/50 rounded-lg p-3">
+              <p className="text-xs text-slate-200">From Square API</p>
+              <p className="text-lg font-bold text-teal-400 mt-0.5">{sourceCounts.api.toLocaleString()}</p>
+            </div>
+            <div className="bg-slate-900/50 rounded-lg p-3">
+              <p className="text-xs text-slate-200">From CSV Import</p>
+              <p className="text-lg font-bold text-blue-400 mt-0.5">{sourceCounts.csv.toLocaleString()}</p>
+            </div>
+            <div className="bg-slate-900/50 rounded-lg p-3">
+              <p className="text-xs text-slate-200">Legacy (no tag)</p>
+              <p className="text-lg font-bold text-slate-200 mt-0.5">{sourceCounts.unknown.toLocaleString()}</p>
+            </div>
+          </div>
+          {sourceCounts.api > 0 && sourceCounts.csv > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+              <p className="text-sm font-semibold text-amber-400 mb-1">Possible duplicate transactions detected</p>
+              <p className="text-xs text-slate-200 mb-3">
+                Square CSV uses payment IDs; the API uses order IDs. The same sale can appear twice if you imported CSV data
+                and then synced via API for the same date range. Click below to remove CSV transactions that overlap with API data.
+              </p>
+              <button
+                onClick={handleDedup}
+                disabled={deduping}
+                className="px-4 py-2 bg-amber-500 text-slate-950 rounded-lg text-sm font-semibold hover:bg-amber-400 disabled:opacity-50"
+              >
+                {deduping ? 'Removing duplicates…' : 'Remove CSV Duplicates'}
+              </button>
             </div>
           )}
         </div>

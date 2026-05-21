@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </svg>
           </div>
           <h3 className="text-base font-semibold text-slate-200 mb-1">Something went wrong</h3>
-          <p className="text-sm text-slate-400 max-w-sm leading-relaxed mb-5">
+          <p className="text-sm text-slate-200 max-w-sm leading-relaxed mb-5">
             {this.state.error.message}
           </p>
           <button

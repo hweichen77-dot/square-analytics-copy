@@ -38,13 +38,13 @@ export default function TimeAnalysisView() {
 
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="text-base font-semibold text-slate-100">Sales Heatmap</h2>
-        <p className="text-xs text-slate-400 mt-0.5 mb-4">Sales volume by day and hour</p>
+        <p className="text-xs text-slate-200 mt-0.5 mb-4">Sales volume by day and hour</p>
 
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full">
             <div className="flex gap-1 mb-1 ml-10">
               {HOURS.map(h => (
-                <div key={h} className="text-center text-xs text-slate-400 font-medium" style={{ width: 36 }}>
+                <div key={h} className="text-center text-xs text-slate-200 font-medium" style={{ width: 36 }}>
                   {hourLabel(h)}
                 </div>
               ))}
@@ -52,7 +52,7 @@ export default function TimeAnalysisView() {
 
             {Array.from({ length: 7 }, (_, i) => i + 1).map(dow => (
               <div key={dow} className="flex gap-1 mb-1 items-center">
-                <div className="text-xs text-slate-400 w-9 text-right pr-1 shrink-0">
+                <div className="text-xs text-slate-200 w-9 text-right pr-1 shrink-0">
                   {DAY_NAMES[dow - 1]}
                 </div>
                 {HOURS.map(hour => {
@@ -82,7 +82,7 @@ export default function TimeAnalysisView() {
             ))}
 
             <div className="flex items-center gap-1 mt-3 ml-10">
-              <span className="text-xs text-slate-400">Less</span>
+              <span className="text-xs text-slate-200">Less</span>
               {[0, 0.25, 0.5, 0.75, 1].map(v => (
                 <div
                   key={v}
@@ -95,7 +95,7 @@ export default function TimeAnalysisView() {
                   }}
                 />
               ))}
-              <span className="text-xs text-slate-400">More</span>
+              <span className="text-xs text-slate-200">More</span>
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function TimeAnalysisView() {
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="text-base font-semibold text-slate-100 mb-4">Monthly Comparison</h2>
         {monthly.length === 0 ? (
-          <p className="text-sm text-slate-400">No monthly data available.</p>
+          <p className="text-sm text-slate-200">No monthly data available.</p>
         ) : (
           <>
             <ResponsiveContainer width="100%" height={220}>
@@ -121,19 +121,19 @@ export default function TimeAnalysisView() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-700/50 text-left">
-                    <th className="pb-2 font-semibold text-slate-400 text-xs">Month</th>
-                    <th className="pb-2 font-semibold text-slate-400 text-xs text-right">Revenue</th>
-                    <th className="pb-2 font-semibold text-slate-400 text-xs text-right">Transactions</th>
-                    <th className="pb-2 font-semibold text-slate-400 text-xs text-right">Avg Value</th>
+                    <th className="pb-2 font-semibold text-slate-200 text-xs">Month</th>
+                    <th className="pb-2 font-semibold text-slate-200 text-xs text-right">Revenue</th>
+                    <th className="pb-2 font-semibold text-slate-200 text-xs text-right">Transactions</th>
+                    <th className="pb-2 font-semibold text-slate-200 text-xs text-right">Avg Value</th>
                   </tr>
                 </thead>
                 <tbody>
                   {monthly.map(m => (
                     <tr key={m.month} className="border-b border-slate-800">
-                      <td className="py-1.5 text-slate-300 font-mono text-xs">{m.month}</td>
+                      <td className="py-1.5 text-slate-100 font-mono text-xs">{m.month}</td>
                       <td className="py-1.5 text-slate-100 font-mono text-xs text-right">{formatCurrency(m.revenue)}</td>
-                      <td className="py-1.5 text-slate-300 font-mono text-xs text-right">{m.transactions}</td>
-                      <td className="py-1.5 text-slate-300 font-mono text-xs text-right">{formatCurrency(m.avgTransaction)}</td>
+                      <td className="py-1.5 text-slate-100 font-mono text-xs text-right">{m.transactions}</td>
+                      <td className="py-1.5 text-slate-100 font-mono text-xs text-right">{formatCurrency(m.avgTransaction)}</td>
                     </tr>
                   ))}
                 </tbody>

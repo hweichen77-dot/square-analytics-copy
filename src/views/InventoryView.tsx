@@ -1,9 +1,9 @@
 import { useState, useMemo, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useFilteredTransactions, useOverridesMap, useCategoryOverrides } from '../db/useTransactions'
-import { useDateRangeStore } from '../store/dateRangeStore'
+import { useCategoryOverrides } from '../db/useTransactions'
 import { db } from '../db/database'
-import { computeProductStats, productTrend, isSlowMover } from '../engine/analyticsEngine'
+import { productTrend, isSlowMover } from '../engine/analyticsEngine'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { ALL_CATEGORY_NAMES } from '../engine/categoryClassifier'
 import { EmptyState } from '../components/ui/EmptyState'
 import { CategoryBadge } from '../components/ui/Badge'
@@ -99,7 +99,7 @@ function TrendBadge({ trend }: { trend: ItemGroup['trend'] }) {
       Down
     </span>
   )
-  return <span className="text-xs text-slate-400">→</span>
+  return <span className="text-xs text-slate-200">→</span>
 }
 
 // ---------------------------------------------------------------------------
@@ -110,7 +110,7 @@ function Chevron({ open }: { open: boolean }) {
     <svg
       width="13" height="13" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-      className={`transition-transform duration-200 shrink-0 text-slate-400 ${open ? 'rotate-90' : ''}`}
+      className={`transition-transform duration-200 shrink-0 text-slate-200 ${open ? 'rotate-90' : ''}`}
     >
       <path d="M9 18l6-6-6-6" />
     </svg>
@@ -121,9 +121,7 @@ function Chevron({ open }: { open: boolean }) {
 // Main view
 // ---------------------------------------------------------------------------
 export default function InventoryView() {
-  const { range }     = useDateRangeStore()
-  const transactions  = useFilteredTransactions(range)
-  const overridesMap  = useOverridesMap()
+  const { transactions, productStats: stats } = useAnalytics()
   const overrides     = useCategoryOverrides()
   const navigate      = useNavigate()
   const { show }      = useToastStore()
@@ -132,8 +130,6 @@ export default function InventoryView() {
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [expandedItems, setExpandedItems]   = useState<Set<string>>(new Set())
   const [ctxMenu, setCtxMenu]         = useState<{ x: number; y: number; name: string } | null>(null)
-
-  const stats = useMemo(() => computeProductStats(transactions, overridesMap), [transactions, overridesMap])
 
   const itemGroups = useMemo(() => groupStats(stats), [stats])
 
@@ -184,26 +180,26 @@ export default function InventoryView() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-slate-800/30 border border-slate-700/40 px-4 py-3">
           <p className="text-xl font-bold text-teal-400">{formatCurrency(totalRevenue)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Total revenue</p>
+          <p className="text-xs text-slate-200 mt-0.5">Total revenue</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 px-4 py-3">
           <p className="text-xl font-bold text-slate-200">{formatNumber(totalUnits)}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Units sold</p>
+          <p className="text-xs text-slate-200 mt-0.5">Units sold</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 px-4 py-3">
           <p className="text-xl font-bold text-emerald-400">{growingCount}</p>
-          <p className="text-xs text-slate-400 mt-0.5">Growing items</p>
+          <p className="text-xs text-slate-200 mt-0.5">Growing items</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 px-4 py-3">
           {topItem ? (
             <>
               <p className="text-sm font-semibold text-slate-100 truncate">{topItem.itemName}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Top seller · {formatCurrency(topItem.totalRevenue)}</p>
+              <p className="text-xs text-slate-200 mt-0.5">Top seller · {formatCurrency(topItem.totalRevenue)}</p>
             </>
           ) : (
             <>
               <p className="text-xl font-bold text-orange-400">{slowCount}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Slow movers</p>
+              <p className="text-xs text-slate-200 mt-0.5">Slow movers</p>
             </>
           )}
         </div>
@@ -226,12 +222,12 @@ export default function InventoryView() {
           <option value="All">All categories</option>
           {ALL_CATEGORY_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
-        <span className="text-sm text-slate-400 self-center">
+        <span className="text-sm text-slate-200 self-center">
           {filteredGroups.length} items · {filteredGroups.reduce((s, g) => s + g.variations.length, 0)} variations
         </span>
         <button
           onClick={() => exportTransactionsCSV(transactions)}
-          className="ml-auto px-3 py-2 bg-slate-700 border border-slate-600 text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-600 transition-colors"
+          className="ml-auto px-3 py-2 bg-slate-700 border border-slate-600 text-slate-100 rounded-lg text-sm font-medium hover:bg-slate-600 transition-colors"
         >
           Export CSV
         </button>
@@ -241,7 +237,7 @@ export default function InventoryView() {
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-900 text-slate-400 uppercase text-xs border-b border-slate-700/60">
+            <thead className="bg-slate-900 text-slate-200 uppercase text-xs border-b border-slate-700/60">
               <tr>
                 <th className="px-4 py-3 w-8"></th>
                 <th className="px-4 py-3 text-left">Product</th>
@@ -273,7 +269,7 @@ export default function InventoryView() {
                         if (!multiVar) setCtxMenu({ x: e.clientX, y: e.clientY, name: group.variations[0].name })
                       }}
                     >
-                      <td className="px-4 py-3 text-slate-400">
+                      <td className="px-4 py-3 text-slate-200">
                         {multiVar ? <Chevron open={isOpen} /> : <span className="w-3.5 inline-block" />}
                       </td>
                       <td className="px-4 py-3 font-semibold text-slate-100">
@@ -288,9 +284,9 @@ export default function InventoryView() {
                         </div>
                       </td>
                       <td className="px-4 py-3"><CategoryBadge category={group.category} /></td>
-                      <td className="px-4 py-3 text-right text-slate-400 tabular-nums">{formatNumber(group.totalUnits)}</td>
-                      <td className="px-4 py-3 text-right text-slate-300 font-semibold tabular-nums">{formatCurrency(group.totalRevenue)}</td>
-                      <td className="px-4 py-3 text-right text-slate-400 tabular-nums">{formatCurrency(group.avgMarketPrice)}</td>
+                      <td className="px-4 py-3 text-right text-slate-200 tabular-nums">{formatNumber(group.totalUnits)}</td>
+                      <td className="px-4 py-3 text-right text-slate-100 font-semibold tabular-nums">{formatCurrency(group.totalRevenue)}</td>
+                      <td className="px-4 py-3 text-right text-slate-200 tabular-nums">{formatCurrency(group.avgMarketPrice)}</td>
                       <td className="px-4 py-3 text-center"><TrendBadge trend={group.trend} /></td>
                     </tr>
 
@@ -308,17 +304,17 @@ export default function InventoryView() {
                           <td className="px-4 py-2.5 pl-10">
                             <div className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-slate-600 shrink-0" />
-                              <span className="text-slate-300 text-xs">
+                              <span className="text-slate-100 text-xs">
                                 {splitItemVariation(v.name).variationName}
                               </span>
                             </div>
                           </td>
                           <td className="px-4 py-2.5"><CategoryBadge category={v.category} /></td>
-                          <td className="px-4 py-2.5 text-right text-slate-400 text-xs tabular-nums">{formatNumber(v.totalUnitsSold)}</td>
-                          <td className="px-4 py-2.5 text-right text-slate-300 text-xs tabular-nums">{formatCurrency(v.totalRevenue)}</td>
-                          <td className="px-4 py-2.5 text-right text-slate-400 text-xs tabular-nums">{formatCurrency(v.avgPrice)}</td>
+                          <td className="px-4 py-2.5 text-right text-slate-200 text-xs tabular-nums">{formatNumber(v.totalUnitsSold)}</td>
+                          <td className="px-4 py-2.5 text-right text-slate-100 text-xs tabular-nums">{formatCurrency(v.totalRevenue)}</td>
+                          <td className="px-4 py-2.5 text-right text-slate-200 text-xs tabular-nums">{formatCurrency(v.avgPrice)}</td>
                           <td className="px-4 py-2.5 text-center">
-                            <span className={vt === 'Growing' ? 'text-emerald-400' : vt === 'Declining' ? 'text-red-400' : 'text-slate-400'}>
+                            <span className={vt === 'Growing' ? 'text-emerald-400' : vt === 'Declining' ? 'text-red-400' : 'text-slate-200'}>
                               {vt === 'Growing' ? '↑' : vt === 'Declining' ? '↓' : '→'}
                             </span>
                           </td>
@@ -332,7 +328,7 @@ export default function InventoryView() {
           </table>
         </div>
         {filteredGroups.length === 0 && (
-          <div className="text-center py-12 text-slate-400 text-sm">No products match your filters.</div>
+          <div className="text-center py-12 text-slate-200 text-sm">No products match your filters.</div>
         )}
       </div>
 
@@ -345,7 +341,7 @@ export default function InventoryView() {
             style={{ left: ctxMenu.x, top: ctxMenu.y }}
             onClick={e => e.stopPropagation()}
           >
-            <p className="px-3 py-1 text-xs text-slate-400 font-medium uppercase tracking-wider">Set category</p>
+            <p className="px-3 py-1 text-xs text-slate-200 font-medium uppercase tracking-wider">Set category</p>
             {ALL_CATEGORY_NAMES.map(cat => (
               <button
                 key={cat}

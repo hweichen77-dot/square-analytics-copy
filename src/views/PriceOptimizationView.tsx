@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { useFilteredTransactions } from '../db/useTransactions'
-import { useDateRangeStore } from '../store/dateRangeStore'
-import { computeProductStats } from '../engine/analyticsEngine'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { EmptyState } from '../components/ui/EmptyState'
 import { formatCurrency } from '../utils/format'
 import { parseProductItems } from '../types/models'
@@ -85,13 +83,12 @@ function buildPriceChanges(transactions: SalesTransaction[]): PriceChange[] {
 }
 
 export default function PriceOptimizationView() {
-  const { range } = useDateRangeStore()
-  const transactions = useFilteredTransactions(range)
+  const { transactions, productStats } = useAnalytics()
   const [selectedProduct, setSelectedProduct] = useState('')
   const [simPrice, setSimPrice] = useState('')
+  const [productSearch, setProductSearch] = useState('')
 
   const changes = useMemo(() => buildPriceChanges(transactions), [transactions])
-  const productStats = useMemo(() => computeProductStats(transactions), [transactions])
   const productNames = useMemo(() => productStats.map(p => p.name).sort(), [productStats])
   const avgPriceByProduct = useMemo(
     () => Object.fromEntries(productStats.map(p => [p.name, p.avgPrice])),
@@ -112,6 +109,12 @@ export default function PriceOptimizationView() {
 
   const improved = changes.filter(c => c.revenueImproved).length
   const declined = changes.filter(c => !c.revenueImproved).length
+
+  const filteredProductStats = useMemo(() => {
+    if (!productSearch.trim()) return productStats
+    const q = productSearch.toLowerCase()
+    return productStats.filter(p => p.name.toLowerCase().includes(q))
+  }, [productStats, productSearch])
 
   const changesForSelected = useMemo(
     () => changes.filter(c => c.productName === selectedProduct),
@@ -150,19 +153,19 @@ export default function PriceOptimizationView() {
 
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Price Changes Detected</p>
+          <p className="text-xs text-slate-200">Price Changes Detected</p>
           <p className="text-xl font-bold text-slate-100 mt-1">{changes.length}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Revenue Improved</p>
+          <p className="text-xs text-slate-200">Revenue Improved</p>
           <p className="text-2xl font-bold text-emerald-400 mt-1">{improved}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Revenue Declined</p>
+          <p className="text-xs text-slate-200">Revenue Declined</p>
           <p className="text-2xl font-bold text-red-400 mt-1">{declined}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Products Tracked</p>
+          <p className="text-xs text-slate-200">Products Tracked</p>
           <p className="text-xl font-bold text-slate-100 mt-1">{productNames.length}</p>
         </div>
       </div>
@@ -175,7 +178,7 @@ export default function PriceOptimizationView() {
             <p className="text-sm font-medium text-slate-200">
               {improved} of {changes.length} detected price changes resulted in higher revenue
             </p>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-200 mt-0.5">
               Elasticity &lt; −1 means demand is price-sensitive; &gt; −1 means relatively inelastic
             </p>
           </div>
@@ -185,7 +188,7 @@ export default function PriceOptimizationView() {
       {changes.length > 0 && (
         <div className="bg-slate-800/30 border border-slate-700/40 p-5">
           <h2 className="text-base font-semibold text-slate-100 mb-1">All Detected Price Changes</h2>
-          <p className="text-xs text-slate-400 mb-4">
+          <p className="text-xs text-slate-200 mb-4">
             A price change is detected when a product's per-unit price differs by more than $0.10.
           </p>
           <div className="overflow-x-auto">
@@ -193,7 +196,7 @@ export default function PriceOptimizationView() {
               <thead>
                 <tr className="border-b border-slate-700 text-left">
                   {['Product', 'Date', 'Old $', 'New $', 'Price Δ', 'Unit Δ (30d)', 'Revenue Δ', 'Elasticity'].map(h => (
-                    <th key={h} className="pb-2 font-semibold text-slate-400 pr-4">{h}</th>
+                    <th key={h} className="pb-2 font-semibold text-slate-200 pr-4">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -201,9 +204,9 @@ export default function PriceOptimizationView() {
                 {changes.map(c => (
                   <tr key={c.id} className="border-b border-slate-800 hover:bg-slate-700/50">
                     <td className="py-2 font-medium text-slate-100 pr-4">{c.productName}</td>
-                    <td className="py-2 font-mono text-slate-400 pr-4">{format(c.changeDate, 'MMM d, yyyy')}</td>
-                    <td className="py-2 font-mono text-slate-300 pr-4">${c.oldPrice.toFixed(2)}</td>
-                    <td className="py-2 font-mono text-slate-300 pr-4">${c.newPrice.toFixed(2)}</td>
+                    <td className="py-2 font-mono text-slate-200 pr-4">{format(c.changeDate, 'MMM d, yyyy')}</td>
+                    <td className="py-2 font-mono text-slate-100 pr-4">${c.oldPrice.toFixed(2)}</td>
+                    <td className="py-2 font-mono text-slate-100 pr-4">${c.newPrice.toFixed(2)}</td>
                     <td className="py-2 font-mono pr-4" style={{ color: c.priceChangePct >= 0 ? '#dc2626' : '#16a34a' }}>
                       {c.priceChangePct >= 0 ? '+' : ''}{c.priceChangePct.toFixed(1)}%
                     </td>
@@ -227,7 +230,7 @@ export default function PriceOptimizationView() {
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="text-base font-semibold text-slate-100 mb-3">Per-Product Price History</h2>
         <select
-          className="border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 mb-4"
+          className="border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 mb-4"
           value={selectedProduct}
           onChange={e => { setSelectedProduct(e.target.value); setSimPrice('') }}
         >
@@ -236,7 +239,7 @@ export default function PriceOptimizationView() {
         </select>
 
         {selectedProduct && changesForSelected.length === 0 && (
-          <p className="text-sm text-slate-400">No price changes detected for "{selectedProduct}".</p>
+          <p className="text-sm text-slate-200">No price changes detected for "{selectedProduct}".</p>
         )}
 
         {priceChartData.length > 0 && (
@@ -256,17 +259,17 @@ export default function PriceOptimizationView() {
       {selectedProduct && currentPrice !== undefined && (
         <div className="bg-slate-800/30 border border-slate-700/40 p-5">
           <h2 className="text-base font-semibold text-slate-100 mb-1">Price Simulator</h2>
-          <p className="text-xs text-slate-400 mb-4">
+          <p className="text-xs text-slate-200 mb-4">
             Estimate the impact of a price change using historical elasticity.
           </p>
           <div className="flex items-center gap-6 flex-wrap">
             <div>
-              <p className="text-xs text-slate-400">Current Price</p>
+              <p className="text-xs text-slate-200">Current Price</p>
               <p className="text-lg font-bold text-slate-100">{formatCurrency(currentPrice)}</p>
             </div>
-            <span className="text-slate-400">→</span>
+            <span className="text-slate-200">→</span>
             <div>
-              <p className="text-xs text-slate-400">New Hypothetical Price</p>
+              <p className="text-xs text-slate-200">New Hypothetical Price</p>
               <input
                 type="number"
                 className="border border-slate-700 rounded-lg px-3 py-1.5 text-sm w-28"
@@ -279,10 +282,10 @@ export default function PriceOptimizationView() {
             {sim && (
               <>
                 <div className="border-l border-slate-700 pl-6">
-                  <p className="text-xs text-slate-400">Est. Weekly Revenue</p>
+                  <p className="text-xs text-slate-200">Est. Weekly Revenue</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-sm text-slate-400">{formatCurrency(sim.currentRevenue)}</span>
-                    <span className="text-slate-400 text-xs">→</span>
+                    <span className="text-sm text-slate-200">{formatCurrency(sim.currentRevenue)}</span>
+                    <span className="text-slate-200 text-xs">→</span>
                     <span
                       className="text-lg font-bold"
                       style={{ color: sim.estimatedRevenue >= sim.currentRevenue ? '#16a34a' : '#dc2626' }}
@@ -292,21 +295,81 @@ export default function PriceOptimizationView() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">Est. Weekly Units</p>
-                  <p className="text-sm font-mono text-slate-300 mt-0.5">
+                  <p className="text-xs text-slate-200">Est. Weekly Units</p>
+                  <p className="text-sm font-mono text-slate-100 mt-0.5">
                     {currentVelocity.toFixed(1)} → {sim.estimatedUnits.toFixed(1)}
                   </p>
                 </div>
               </>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-3">
+          <p className="text-xs text-slate-200 mt-3">
             {changesForSelected.length === 0
               ? 'Note: Using default elasticity of −1.0 (no historical price changes for this product).'
               : `Based on elasticity of ${elasticity.toFixed(2)} from ${changesForSelected.length} detected change(s).`}
           </p>
         </div>
       )}
+
+      {/* All Products List with Search */}
+      <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-slate-100">All Products</h2>
+            <p className="text-xs text-slate-200 mt-0.5">{filteredProductStats.length} of {productStats.length} products</p>
+          </div>
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={productSearch}
+            onChange={e => setProductSearch(e.target.value)}
+            className="border border-slate-600 rounded-lg px-3 py-1.5 text-sm bg-slate-900 text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 w-56"
+          />
+        </div>
+        <div className="overflow-y-auto max-h-96">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-slate-900 border-b border-slate-700/50">
+              <tr>
+                <th className="px-4 py-2.5 text-left font-semibold text-slate-200">Product</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-slate-200">Avg Price</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-slate-200">Units Sold</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-slate-200">Revenue</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-slate-200">Weekly Velocity</th>
+                <th className="px-4 py-2.5 text-right font-semibold text-slate-200">Price Changes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-700/30">
+              {filteredProductStats.map(p => {
+                const vel = velocityByProduct[p.name] ?? 0
+                const changeCount = changes.filter(c => c.productName === p.name).length
+                return (
+                  <tr
+                    key={p.name}
+                    className={`hover:bg-slate-700/40 cursor-pointer transition-colors ${selectedProduct === p.name ? 'bg-teal-500/10' : ''}`}
+                    onClick={() => { setSelectedProduct(p.name); setSimPrice('') }}
+                  >
+                    <td className="px-4 py-2.5 text-slate-100 font-medium">{p.name}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-100">{formatCurrency(p.avgPrice)}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-100">{p.totalUnitsSold.toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-slate-100">{formatCurrency(p.totalRevenue)}</td>
+                    <td className="px-4 py-2.5 text-right text-slate-200">{vel.toFixed(1)}/wk</td>
+                    <td className="px-4 py-2.5 text-right">
+                      {changeCount > 0
+                        ? <span className="text-teal-400 font-medium">{changeCount}</span>
+                        : <span className="text-slate-400">—</span>}
+                    </td>
+                  </tr>
+                )
+              })}
+              {filteredProductStats.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-200">No products match your search.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

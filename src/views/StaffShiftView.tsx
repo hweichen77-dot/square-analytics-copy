@@ -121,19 +121,19 @@ export default function StaffShiftView() {
 
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Top Earner</p>
+          <p className="text-xs text-slate-200">Top Earner</p>
           <p className="text-lg font-bold text-slate-100 mt-1 truncate">{topStaff?.name ?? '—'}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Total Staff</p>
+          <p className="text-xs text-slate-200">Total Staff</p>
           <p className="text-xl font-bold text-slate-100 mt-1">{profiles.length}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Avg Revenue/Staff</p>
+          <p className="text-xs text-slate-200">Avg Revenue/Staff</p>
           <p className="text-xl font-bold text-slate-100 mt-1 font-mono">{formatCurrency(avgRevenue)}</p>
         </div>
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-          <p className="text-xs text-slate-400">Coverage</p>
+          <p className="text-xs text-slate-200">Coverage</p>
           <p className="text-xl font-bold text-slate-100 mt-1">{coveragePct}%</p>
         </div>
       </div>
@@ -146,7 +146,7 @@ export default function StaffShiftView() {
               <button
                 key={key}
                 onClick={() => setMetric(key)}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${metric === key ? 'bg-teal-500/15 text-teal-400 font-semibold' : 'text-slate-400 hover:bg-slate-700'}`}
+                className={`px-3 py-1 text-xs rounded-full transition-colors ${metric === key ? 'bg-teal-500/15 text-teal-400 font-semibold' : 'text-slate-200 hover:bg-slate-700'}`}
               >
                 {label}
               </button>
@@ -174,7 +174,7 @@ export default function StaffShiftView() {
             <thead>
               <tr className="border-b border-slate-700 text-left">
                 {['Staff Member', 'Transactions', 'Total Revenue', 'Avg Transaction', 'Days Worked', 'Top Product'].map(h => (
-                  <th key={h} className="pb-2 font-semibold text-slate-400">{h}</th>
+                  <th key={h} className="pb-2 font-semibold text-slate-200">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -192,11 +192,11 @@ export default function StaffShiftView() {
                     />
                     <span className="font-medium text-slate-100">{p.name}</span>
                   </td>
-                  <td className="py-2 font-mono text-slate-300">{p.totalTransactions}</td>
+                  <td className="py-2 font-mono text-slate-100">{p.totalTransactions}</td>
                   <td className="py-2 font-mono text-slate-100">{formatCurrency(p.totalRevenue)}</td>
-                  <td className="py-2 font-mono text-slate-300">{formatCurrency(p.avgTransactionValue)}</td>
-                  <td className="py-2 font-mono text-slate-300">{p.activeDays}</td>
-                  <td className="py-2 text-slate-400 truncate max-w-32">{p.topProducts[0]?.name ?? '—'}</td>
+                  <td className="py-2 font-mono text-slate-100">{formatCurrency(p.avgTransactionValue)}</td>
+                  <td className="py-2 font-mono text-slate-100">{p.activeDays}</td>
+                  <td className="py-2 text-slate-200 truncate max-w-32">{p.topProducts[0]?.name ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -206,17 +206,17 @@ export default function StaffShiftView() {
 
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="text-base font-semibold text-slate-100 mb-1">Staff × Day of Week Revenue Heatmap</h2>
-        <p className="text-xs text-slate-400 mb-4">Color intensity = revenue generated in that slot</p>
+        <p className="text-xs text-slate-200 mb-4">Color intensity = revenue generated in that slot</p>
         <div className="overflow-x-auto">
           <div className="inline-block">
             <div className="flex gap-1 mb-1 ml-28">
               {DAY_NAMES.map(d => (
-                <div key={d} className="text-xs text-slate-400 font-medium text-center" style={{ width: 44 }}>{d}</div>
+                <div key={d} className="text-xs text-slate-200 font-medium text-center" style={{ width: 44 }}>{d}</div>
               ))}
             </div>
             {sorted.slice(0, 10).map(p => (
               <div key={p.name} className="flex gap-1 mb-1 items-center">
-                <div className="text-xs text-slate-400 w-28 text-right pr-2 truncate">{p.name}</div>
+                <div className="text-xs text-slate-200 w-28 text-right pr-2 truncate">{p.name}</div>
                 {Array.from({ length: 7 }, (_, i) => i + 1).map(dow => {
                   const rev = p.dailyRevenue[dow] ?? 0
                   const intensity = rev / heatmapMax
@@ -249,11 +249,11 @@ export default function StaffShiftView() {
         <div className="bg-slate-800/30 border border-slate-700/40 p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-slate-100">{selectedProfile.name} — Detail View</h2>
-            <button onClick={() => setSelectedStaff('')} className="text-slate-400 hover:text-slate-200 text-lg">×</button>
+            <button onClick={() => setSelectedStaff('')} className="text-slate-200 hover:text-slate-200 text-lg">×</button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-slate-900 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-3">Revenue by Hour of Day</h3>
+              <h3 className="text-sm font-medium text-slate-100 mb-3">Revenue by Hour of Day</h3>
               <ResponsiveContainer width="100%" height={140}>
                 <BarChart data={selectedProfile.revenueByHour} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -269,11 +269,11 @@ export default function StaffShiftView() {
               </ResponsiveContainer>
             </div>
             <div className="bg-slate-900 rounded-xl p-4">
-              <h3 className="text-sm font-medium text-slate-300 mb-3">Top 5 Products Sold</h3>
+              <h3 className="text-sm font-medium text-slate-100 mb-3">Top 5 Products Sold</h3>
               <div className="space-y-2">
                 {selectedProfile.topProducts.slice(0, 5).map(item => (
                   <div key={item.name} className="flex items-center justify-between">
-                    <span className="text-xs text-slate-300 truncate flex-1 mr-2">{item.name}</span>
+                    <span className="text-xs text-slate-100 truncate flex-1 mr-2">{item.name}</span>
                     <span className="text-xs font-semibold font-mono text-slate-100">{item.count}×</span>
                   </div>
                 ))}

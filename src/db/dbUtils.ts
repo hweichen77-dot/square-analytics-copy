@@ -59,6 +59,22 @@ export async function upsertProductCosts(costs: Omit<ProductCostData, 'id'>[]): 
   })
 }
 
+// Removes CSV-sourced transactions that fall within date range where API data exists.
+// Fixes double-counting: Square CSV uses paymentID, API uses orderID → same sale stored twice.
+export async function removeCsvDuplicates(): Promise<number> {
+  const apiTxs = await db.salesTransactions.filter(t => t.source === 'api').toArray()
+  if (apiTxs.length === 0) return 0
+  const apiMin = apiTxs.reduce((m, t) => t.date < m ? t.date : m, apiTxs[0].date)
+  const apiMax = apiTxs.reduce((m, t) => t.date > m ? t.date : m, apiTxs[0].date)
+  const csvInRange = await db.salesTransactions
+    .where('date').between(apiMin, apiMax, true, true)
+    .filter(t => t.source === 'csv')
+    .toArray()
+  if (csvInRange.length === 0) return 0
+  await db.salesTransactions.bulkDelete(csvInRange.map(t => t.id!))
+  return csvInRange.length
+}
+
 export async function clearAllData(): Promise<void> {
   await db.transaction('rw',
     [db.salesTransactions, db.categoryOverrides, db.restockLogs,

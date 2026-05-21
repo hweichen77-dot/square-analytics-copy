@@ -3,9 +3,8 @@ import {
   ComposedChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
-import { useFilteredTransactions, useStoreEvents } from '../db/useTransactions'
-import { useDateRangeStore } from '../store/dateRangeStore'
-import { computeDailyRevenue } from '../engine/analyticsEngine'
+import { useStoreEvents } from '../db/useTransactions'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { EmptyState } from '../components/ui/EmptyState'
 import { db } from '../db/database'
 import { formatCurrency } from '../utils/format'
@@ -30,7 +29,7 @@ const EVENT_TAILWIND_COLOR: Record<string, string> = {
   blue: 'bg-blue-500/15 text-blue-400',
   green: 'bg-emerald-500/15 text-emerald-400',
   teal: 'bg-teal-100 text-teal-700',
-  gray: 'bg-slate-800 text-slate-400',
+  gray: 'bg-slate-800 text-slate-200',
 }
 
 function eventHex(type: string) {
@@ -83,7 +82,7 @@ function computeImpact(event: StoreEvent, transactions: SalesTransaction[]): Eve
 
 function EventTypeBadge({ type }: { type: string }) {
   const color = eventColor(type)
-  const cls = EVENT_TAILWIND_COLOR[color] ?? 'bg-slate-800 text-slate-400'
+  const cls = EVENT_TAILWIND_COLOR[color] ?? 'bg-slate-800 text-slate-200'
   return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${cls}`}>{type}</span>
 }
 
@@ -107,16 +106,16 @@ function EventEditModal({
       <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 w-96 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">{event ? 'Edit Event' : 'Add Event'}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-xl">×</button>
+          <button onClick={onClose} className="text-slate-200 hover:text-slate-200 text-xl">×</button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Event Name</label>
+            <label className="block text-xs font-medium text-slate-200 mb-1">Event Name</label>
             <input className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
               value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Spirit Week 2025" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Type</label>
+            <label className="block text-xs font-medium text-slate-200 mb-1">Type</label>
             <select className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
               value={type} onChange={e => setType(e.target.value)}>
               {EVENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -124,24 +123,24 @@ function EventEditModal({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">Start Date</label>
+              <label className="block text-xs font-medium text-slate-200 mb-1">Start Date</label>
               <input type="date" className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
                 value={start} onChange={e => setStart(e.target.value)} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">End Date</label>
+              <label className="block text-xs font-medium text-slate-200 mb-1">End Date</label>
               <input type="date" className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
                 value={end} onChange={e => setEnd(e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-400 mb-1">Notes (optional)</label>
+            <label className="block text-xs font-medium text-slate-200 mb-1">Notes (optional)</label>
             <input className="w-full border border-slate-600 rounded-lg px-3 py-2 bg-slate-700/50 text-sm"
               value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
         </div>
         <div className="flex justify-end gap-3 mt-5">
-          <button onClick={onClose} className="text-sm text-slate-400 hover:text-slate-300">Cancel</button>
+          <button onClick={onClose} className="text-sm text-slate-200 hover:text-slate-300">Cancel</button>
           <button
             disabled={!name.trim()}
             onClick={() => { onSave(name, type, new Date(start), new Date(end), notes); onClose() }}
@@ -156,13 +155,10 @@ function EventEditModal({
 }
 
 export default function SeasonalView() {
-  const { range } = useDateRangeStore()
-  const transactions = useFilteredTransactions(range)
+  const { transactions, daily: dailyRevenue } = useAnalytics()
   const events = useStoreEvents()
   const [showAdd, setShowAdd] = useState(false)
   const [editingEvent, setEditingEvent] = useState<StoreEvent | null>(null)
-
-  const dailyRevenue = useMemo(() => computeDailyRevenue(transactions), [transactions])
   const impacts = useMemo(
     () => events.map(e => computeImpact(e, transactions)),
     [events, transactions],
@@ -204,7 +200,7 @@ export default function SeasonalView() {
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="text-base font-semibold text-slate-100 mb-3">Store Events</h2>
         {events.length === 0 ? (
-          <p className="text-sm text-slate-400">No events added yet. Click "Add Event" to get started.</p>
+          <p className="text-sm text-slate-200">No events added yet. Click "Add Event" to get started.</p>
         ) : (
           <div className="divide-y divide-slate-700/40">
             {events.map(event => (
@@ -218,12 +214,12 @@ export default function SeasonalView() {
                     <span className="font-medium text-sm text-slate-100">{event.name}</span>
                     <EventTypeBadge type={event.eventType} />
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-200 mt-0.5">
                     {format(event.startDate, 'MMM d')} – {format(event.endDate, 'MMM d, yyyy')}
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setEditingEvent(event)} className="text-xs text-slate-400 hover:text-slate-200">Edit</button>
+                  <button onClick={() => setEditingEvent(event)} className="text-xs text-slate-200 hover:text-slate-200">Edit</button>
                   <button onClick={() => deleteEvent(event)} className="text-xs text-red-400 hover:text-red-400">Delete</button>
                 </div>
               </div>
@@ -273,33 +269,33 @@ export default function SeasonalView() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-semibold text-sm text-slate-100">{impact.event.name}</span>
                       <EventTypeBadge type={impact.event.eventType} />
-                      <span className="text-xs text-slate-400 ml-auto">
+                      <span className="text-xs text-slate-200 ml-auto">
                         {format(impact.event.startDate, 'MMM d')} – {format(impact.event.endDate, 'MMM d')}
                       </span>
                     </div>
                     <div className="flex gap-6 flex-wrap">
                       <div>
-                        <p className="text-xs text-slate-400">Total Revenue</p>
+                        <p className="text-xs text-slate-200">Total Revenue</p>
                         <p className="font-bold text-sm text-slate-100">{formatCurrency(impact.totalRevenueDuring)}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400">vs Baseline</p>
+                        <p className="text-xs text-slate-200">vs Baseline</p>
                         <p className="font-bold text-sm" style={{ color: upliftColor }}>
                           {upliftSign}{impact.upliftPct.toFixed(1)}%
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400">Avg Daily During</p>
-                        <p className="font-mono text-sm text-slate-300">{formatCurrency(impact.avgDailyRevenueDuring)}/day</p>
+                        <p className="text-xs text-slate-200">Avg Daily During</p>
+                        <p className="font-mono text-sm text-slate-100">{formatCurrency(impact.avgDailyRevenueDuring)}/day</p>
                       </div>
                       <div>
-                        <p className="text-xs text-slate-400">Avg Daily Baseline</p>
-                        <p className="font-mono text-sm text-slate-300">{formatCurrency(impact.avgDailyRevenueBefore)}/day</p>
+                        <p className="text-xs text-slate-200">Avg Daily Baseline</p>
+                        <p className="font-mono text-sm text-slate-100">{formatCurrency(impact.avgDailyRevenueBefore)}/day</p>
                       </div>
                       {impact.topProducts.length > 0 && (
                         <div>
-                          <p className="text-xs text-slate-400">Top Products</p>
-                          <p className="text-sm text-slate-300">{impact.topProducts.map(p => `${p.name} (${p.qty})`).join(', ')}</p>
+                          <p className="text-xs text-slate-200">Top Products</p>
+                          <p className="text-sm text-slate-100">{impact.topProducts.map(p => `${p.name} (${p.qty})`).join(', ')}</p>
                         </div>
                       )}
                     </div>

@@ -53,7 +53,7 @@ export function SortableTable<T>({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="bg-slate-900/70 text-slate-400 uppercase text-[10px] tracking-wider">
+        <thead className="bg-slate-900/70 text-slate-200 uppercase text-[10px] tracking-wider">
           <tr>
             {columns.map(col => (
               <th
@@ -73,7 +73,7 @@ export function SortableTable<T>({
           {displayed.map((row, idx) => (
             <tr key={rowKey(row)} className={`hover:bg-slate-700/30 transition-colors ${idx % 2 === 1 ? 'bg-slate-800/40' : ''}`}>
               {columns.map(col => (
-                <td key={col.key} className={`px-4 py-3 text-slate-300 ${alignClass(col.align)}`}>
+                <td key={col.key} className={`px-4 py-3 text-slate-100 ${alignClass(col.align)}`}>
                   {col.render ? col.render(row) : col.getValue ? String(col.getValue(row)) : ''}
                 </td>
               ))}
@@ -82,7 +82,7 @@ export function SortableTable<T>({
         </tbody>
       </table>
       {displayed.length === 0 && (
-        <div className="text-center py-10 text-slate-400 text-sm">No data to display.</div>
+        <div className="text-center py-10 text-slate-200 text-sm">No data to display.</div>
       )}
     </div>
   )

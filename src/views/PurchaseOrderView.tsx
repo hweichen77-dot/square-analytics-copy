@@ -22,12 +22,12 @@ const CATEGORY_COLORS: Record<string, string> = {
   Drinks:         'bg-teal-500/15 text-teal-400',
   'Ice Cream':    'bg-emerald-500/15 text-emerald-400',
   'Ramen/Hot Food': 'bg-red-500/15 text-red-400',
-  Merch:          'bg-slate-700 text-slate-400',
-  Other:          'bg-slate-700 text-slate-400',
+  Merch:          'bg-slate-700 text-slate-200',
+  Other:          'bg-slate-700 text-slate-200',
 }
 
 function categoryClass(cat: string) {
-  return CATEGORY_COLORS[cat] ?? 'bg-slate-700 text-slate-400'
+  return CATEGORY_COLORS[cat] ?? 'bg-slate-700 text-slate-200'
 }
 
 function seasonLabel(month: number) {
@@ -201,7 +201,7 @@ export default function PurchaseOrderView() {
       {/* ── Period selector card ── */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-6">
         <h2 className="text-sm font-semibold text-slate-200 mb-1">Select time period to order for</h2>
-        <p className="text-xs text-slate-400 mb-5">
+        <p className="text-xs text-slate-200 mb-5">
           The report will recommend quantities based on sales velocity over your full transaction history,
           scaled to cover the selected period.
         </p>
@@ -214,7 +214,7 @@ export default function PurchaseOrderView() {
               className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors cursor-pointer ${
                 selectedWeeks === opt.weeks
                   ? 'bg-teal-500 text-slate-950 border-teal-500'
-                  : 'border-slate-600 text-slate-400 hover:border-teal-500/50 hover:text-slate-200'
+                  : 'border-slate-600 text-slate-200 hover:border-teal-500/50 hover:text-slate-200'
               }`}
             >
               {opt.label}
@@ -229,7 +229,7 @@ export default function PurchaseOrderView() {
           >
             Generate Report
           </button>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-200">
             {selectedWeeks}-week window · {dateRangeLabel}
           </p>
         </div>
@@ -241,23 +241,23 @@ export default function PurchaseOrderView() {
           {/* Quick stat strip */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-              <p className="text-xs text-slate-400">Products Tracked</p>
+              <p className="text-xs text-slate-200">Products Tracked</p>
               <p className="text-2xl font-bold text-slate-100 mt-1">{totalProductCount}</p>
-              <p className="text-xs text-slate-400 mt-0.5">in transaction history</p>
+              <p className="text-xs text-slate-200 mt-0.5">in transaction history</p>
             </div>
             <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-              <p className="text-xs text-slate-400">Top Velocity Item</p>
+              <p className="text-xs text-slate-200">Top Velocity Item</p>
               <p className="text-sm font-bold text-teal-400 mt-1 truncate">{velocityPreview[0]?.name ?? '—'}</p>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-200 mt-0.5">
                 {velocityPreview[0] ? `${velocityPreview[0].weeklyVelocity.toFixed(1)} units/wk` : ''}
               </p>
             </div>
             <div className="bg-slate-800/30 border border-slate-700/40 p-4">
-              <p className="text-xs text-slate-400">Projected Units ({selectedWeeks}wk)</p>
+              <p className="text-xs text-slate-200">Projected Units ({selectedWeeks}wk)</p>
               <p className="text-2xl font-bold text-slate-100 mt-1">
                 {velocityPreview.reduce((s, p) => s + Math.ceil(p.weeklyVelocity * selectedWeeks), 0)}
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">top 8 items combined</p>
+              <p className="text-xs text-slate-200 mt-0.5">top 8 items combined</p>
             </div>
           </div>
 
@@ -266,9 +266,9 @@ export default function PurchaseOrderView() {
             <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
               <div>
                 <h2 className="font-semibold text-slate-200">Velocity Preview</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Top 8 items by weekly sales — likely candidates for reorder</p>
+                <p className="text-xs text-slate-200 mt-0.5">Top 8 items by weekly sales — likely candidates for reorder</p>
               </div>
-              <span className="text-xs text-slate-400 bg-slate-700/50 px-2 py-1 rounded-lg">
+              <span className="text-xs text-slate-200 bg-slate-700/50 px-2 py-1 rounded-lg">
                 {selectedWeeks}-week window
               </span>
             </div>
@@ -279,7 +279,7 @@ export default function PurchaseOrderView() {
                 const projectedQty = Math.ceil(item.weeklyVelocity * selectedWeeks)
                 return (
                   <div key={item.name} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-700/20 transition-colors">
-                    <span className="text-sm font-bold text-slate-400 w-5 shrink-0">{i + 1}</span>
+                    <span className="text-sm font-bold text-slate-200 w-5 shrink-0">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-slate-200 truncate">{item.name}</p>
                       <div className="mt-1.5 h-1.5 bg-slate-700 rounded-full overflow-hidden w-full">
@@ -287,15 +287,15 @@ export default function PurchaseOrderView() {
                       </div>
                     </div>
                     <div className="text-right shrink-0 min-w-[100px]">
-                      <p className="text-sm font-semibold text-slate-100">{item.weeklyVelocity.toFixed(1)} <span className="text-xs font-normal text-slate-400">/wk</span></p>
-                      <p className="text-xs text-slate-400">~{projectedQty} units for {selectedWeeks}wk</p>
+                      <p className="text-sm font-semibold text-slate-100">{item.weeklyVelocity.toFixed(1)} <span className="text-xs font-normal text-slate-200">/wk</span></p>
+                      <p className="text-xs text-slate-200">~{projectedQty} units for {selectedWeeks}wk</p>
                     </div>
                   </div>
                 )
               })}
             </div>
             <div className="px-5 py-3 bg-slate-900/40 border-t border-slate-700/50">
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-200">
                 Click <span className="text-teal-400 font-medium">Generate Report</span> above to build the full order with seasonal adjustments, low-stock flags, and XLSX export.
               </p>
             </div>
@@ -313,9 +313,9 @@ export default function PurchaseOrderView() {
                 <IconBox />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Items to Order</p>
+                <p className="text-xs text-slate-200">Items to Order</p>
                 <p className="text-xl font-bold text-slate-100">{displayItems.length} products</p>
-                <p className="text-xs text-slate-400">{totalItemCount} total units</p>
+                <p className="text-xs text-slate-200">{totalItemCount} total units</p>
               </div>
             </div>
             <div className="bg-slate-800/30 border border-slate-700/40 p-4 flex items-center gap-4">
@@ -323,9 +323,9 @@ export default function PurchaseOrderView() {
                 <IconDollar />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Estimated Revenue</p>
+                <p className="text-xs text-slate-200">Estimated Revenue</p>
                 <p className="text-xl font-bold text-slate-100">{formatCurrency(totalRevenue)}</p>
-                <p className="text-xs text-slate-400">at avg sell price</p>
+                <p className="text-xs text-slate-200">at avg sell price</p>
               </div>
             </div>
             <div className="bg-slate-800/30 border border-slate-700/40 p-4 flex items-center gap-4">
@@ -333,9 +333,9 @@ export default function PurchaseOrderView() {
                 <IconCalendar />
               </div>
               <div>
-                <p className="text-xs text-slate-400">Generated For</p>
+                <p className="text-xs text-slate-200">Generated For</p>
                 <p className="text-xl font-bold text-slate-100">{selectedWeeks}-Week Window</p>
-                <p className="text-xs text-slate-400">{dateRangeLabel}</p>
+                <p className="text-xs text-slate-200">{dateRangeLabel}</p>
               </div>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function PurchaseOrderView() {
               <p className="font-semibold text-sm text-slate-200">
                 Upcoming Season: {seasonLabel(currentMonth)}
               </p>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-200 mt-0.5">
                 Recommendations account for seasonal demand patterns and upcoming events.
               </p>
             </div>
@@ -363,7 +363,7 @@ export default function PurchaseOrderView() {
           {/* Filter + count */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-sm text-slate-100 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={onlyNeedingReorder}
@@ -372,7 +372,7 @@ export default function PurchaseOrderView() {
                 />
                 Only show items needing reorder
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-sm text-slate-100 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={includeMerch}
@@ -382,7 +382,7 @@ export default function PurchaseOrderView() {
                 Include Merch / Other
               </label>
             </div>
-            <p className="text-xs text-slate-400">{displayItems.length} of {orderItems.length} items</p>
+            <p className="text-xs text-slate-200">{displayItems.length} of {orderItems.length} items</p>
           </div>
 
           {/* Main table */}
@@ -391,15 +391,15 @@ export default function PurchaseOrderView() {
               <table className="w-full text-xs">
                 <thead className="bg-slate-900 border-b border-slate-700/50">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-400 cursor-pointer hover:text-slate-300 select-none"
+                    <th className="px-4 py-3 text-left font-semibold text-slate-200 cursor-pointer hover:text-slate-300 select-none"
                       onClick={() => toggleSort('productName')}>Product{sortArrow('productName')}</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-400 cursor-pointer hover:text-slate-300 select-none"
+                    <th className="px-4 py-3 text-left font-semibold text-slate-200 cursor-pointer hover:text-slate-300 select-none"
                       onClick={() => toggleSort('avgDailyVelocity')}>Wkly Velocity{sortArrow('avgDailyVelocity')}</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-400 cursor-pointer hover:text-slate-300 select-none"
+                    <th className="px-4 py-3 text-right font-semibold text-slate-200 cursor-pointer hover:text-slate-300 select-none"
                       onClick={() => toggleSort('recommendedQty')}>Rec. Qty{sortArrow('recommendedQty')}</th>
-                    <th className="px-4 py-3 text-right font-semibold text-slate-400 cursor-pointer hover:text-slate-300 select-none"
+                    <th className="px-4 py-3 text-right font-semibold text-slate-200 cursor-pointer hover:text-slate-300 select-none"
                       onClick={() => toggleSort('estimatedRevenue')}>Est. Revenue{sortArrow('estimatedRevenue')}</th>
-                    <th className="px-4 py-3 text-left font-semibold text-slate-400">Reasoning</th>
+                    <th className="px-4 py-3 text-left font-semibold text-slate-200">Reasoning</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -413,8 +413,8 @@ export default function PurchaseOrderView() {
                             {item.category}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 font-mono text-slate-300">
-                          {(item.avgDailyVelocity * 7).toFixed(1)}<span className="text-slate-400"> /wk</span>
+                        <td className="px-4 py-2.5 font-mono text-slate-100">
+                          {(item.avgDailyVelocity * 7).toFixed(1)}<span className="text-slate-200"> /wk</span>
                         </td>
                         <td className="px-4 py-2.5 text-right">
                           <input
@@ -433,7 +433,7 @@ export default function PurchaseOrderView() {
                         <td className="px-4 py-2.5 text-right font-mono font-semibold text-slate-100">
                           {formatCurrency(item.avgPrice * qty)}
                         </td>
-                        <td className="px-4 py-2.5 text-slate-400 max-w-48 truncate">
+                        <td className="px-4 py-2.5 text-slate-200 max-w-48 truncate">
                           {item.reasoning}
                         </td>
                       </tr>
@@ -453,9 +453,9 @@ export default function PurchaseOrderView() {
                   <div key={cat} className="flex items-center justify-between p-3 bg-slate-900 rounded-xl">
                     <div>
                       <p className="font-semibold text-sm text-slate-200">{cat}</p>
-                      <p className="text-xs text-slate-400">{qty} units</p>
+                      <p className="text-xs text-slate-200">{qty} units</p>
                     </div>
-                    <p className="font-mono text-sm text-slate-300">{formatCurrency(rev)}</p>
+                    <p className="font-mono text-sm text-slate-100">{formatCurrency(rev)}</p>
                   </div>
                 ))}
               </div>

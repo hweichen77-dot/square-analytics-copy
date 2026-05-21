@@ -61,7 +61,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700">
-          <svg className="w-4 h-4 text-slate-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg className="w-4 h-4 text-slate-200 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
           </svg>
           <input
@@ -71,13 +71,13 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             placeholder="Search products…"
             className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 text-sm focus:outline-none"
           />
-          <kbd className="text-[10px] text-slate-500 border border-slate-700 px-1.5 py-0.5">esc</kbd>
+          <kbd className="text-[10px] text-slate-300 border border-slate-700 px-1.5 py-0.5">esc</kbd>
         </div>
 
         {/* Results */}
         <div className="max-h-80 overflow-y-auto">
           {results.length === 0 ? (
-            <p className="px-4 py-6 text-sm text-slate-400 text-center">No products found</p>
+            <p className="px-4 py-6 text-sm text-slate-200 text-center">No products found</p>
           ) : (
             results.map((p, i) => (
               <button
@@ -89,7 +89,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
                 onMouseEnter={() => setSelected(i)}
               >
                 <span className="text-sm font-medium truncate">{p.name}</span>
-                <span className="text-xs text-slate-400 font-mono shrink-0 ml-4">
+                <span className="text-xs text-slate-200 font-mono shrink-0 ml-4">
                   {formatCurrency(p.totalRevenue)} · {formatNumber(p.totalUnitsSold)} units
                 </span>
               </button>
@@ -97,7 +97,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-slate-700/50 flex items-center gap-4 text-[10px] text-slate-500">
+        <div className="px-4 py-2 border-t border-slate-700/50 flex items-center gap-4 text-[10px] text-slate-300">
           <span><kbd className="border border-slate-700 px-1">↑↓</kbd> navigate</span>
           <span><kbd className="border border-slate-700 px-1">↵</kbd> open</span>
           <span><kbd className="border border-slate-700 px-1">esc</kbd> close</span>

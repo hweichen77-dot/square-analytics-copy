@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/database'
-import { useFilteredTransactions, useOverridesMap } from '../db/useTransactions'
-import { useDateRangeStore } from '../store/dateRangeStore'
-import { computeProductStats } from '../engine/analyticsEngine'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { auditCatalogue, type AuditIssue, type AuditSeverity } from '../engine/catalogueAuditEngine'
 import { splitItemVariation } from '../types/models'
 import { EmptyState } from '../components/ui/EmptyState'
@@ -81,9 +79,7 @@ function Chevron({ open }: { open: boolean }) {
 type Filter = 'all' | AuditSeverity
 
 export default function CatalogueCheckerView() {
-  const { range }     = useDateRangeStore()
-  const transactions  = useFilteredTransactions(range)
-  const overrides     = useOverridesMap()
+  const { productStats: stats, overrides } = useAnalytics()
   const catalogue     = useLiveQuery(() => db.catalogueProducts.toArray(), []) ?? []
   const showToast     = useToastStore(s => s.show)
 
@@ -93,11 +89,10 @@ export default function CatalogueCheckerView() {
 
   // -- Audit ------------------------------------------------------------------
   const { issues, errorCount, warningCount, infoCount } = useMemo(() => {
-    const stats      = computeProductStats(transactions, overrides)
     const salesNames = new Set(stats.map(s => s.name))
     const avgPrices  = new Map(stats.map(s => [s.name, s.avgPrice]))
     return auditCatalogue(catalogue, salesNames, avgPrices)
-  }, [transactions, overrides, catalogue])
+  }, [stats, overrides, catalogue])
 
   // -- Filter -----------------------------------------------------------------
   const visibleIssues = useMemo(
@@ -161,7 +156,7 @@ export default function CatalogueCheckerView() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100">Catalogue Checker</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <p className="text-sm text-slate-200 mt-0.5">
             Audits {catalogue.length} variations across your catalogue for errors and data quality issues.
           </p>
         </div>
@@ -181,7 +176,7 @@ export default function CatalogueCheckerView() {
           { sev: 'error'   as Filter, label: 'Errors',   count: errorCount,   color: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/25' },
           { sev: 'warning' as Filter, label: 'Warnings', count: warningCount, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/25' },
           { sev: 'info'    as Filter, label: 'Info',     count: infoCount,    color: 'text-blue-400',  bg: 'bg-blue-500/10 border-blue-500/25' },
-          { sev: 'all'     as Filter, label: 'Total',    count: issues.length, color: 'text-slate-300', bg: 'bg-slate-700/50 border-slate-600/30' },
+          { sev: 'all'     as Filter, label: 'Total',    count: issues.length, color: 'text-slate-100', bg: 'bg-slate-700/50 border-slate-600/30' },
         ].map(({ sev, label, count, color, bg }) => (
           <button
             key={sev}
@@ -189,13 +184,13 @@ export default function CatalogueCheckerView() {
             className={`rounded-xl border p-4 text-left transition-all cursor-pointer ${bg} ${filter === sev ? 'ring-2 ring-teal-500/50' : 'hover:brightness-110'}`}
           >
             <p className={`text-3xl font-bold tabular-nums ${color}`}>{count}</p>
-            <p className="text-xs text-slate-400 mt-1 font-medium">{label}</p>
+            <p className="text-xs text-slate-200 mt-1 font-medium">{label}</p>
           </button>
         ))}
       </div>
 
       {/* Tax rules reminder */}
-      <div className="bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-400 flex items-center gap-2">
+      <div className="bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" className="shrink-0">
           <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
         </svg>
@@ -214,7 +209,7 @@ export default function CatalogueCheckerView() {
             </svg>
           </div>
           <p className="font-semibold text-slate-200 text-lg">Catalogue looks clean!</p>
-          <p className="text-sm text-slate-400 mt-1">No errors, warnings, or issues found.</p>
+          <p className="text-sm text-slate-200 mt-1">No errors, warnings, or issues found.</p>
         </div>
       )}
 
@@ -224,7 +219,7 @@ export default function CatalogueCheckerView() {
           {/* Filter label */}
           {filter !== 'all' && (
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs text-slate-400">Showing {filter}s only · {visibleIssues.length} issues across {itemGroups.length} items</p>
+              <p className="text-xs text-slate-200">Showing {filter}s only · {visibleIssues.length} issues across {itemGroups.length} items</p>
               <button onClick={() => setFilter('all')} className="text-xs text-teal-400 hover:underline cursor-pointer">Show all</button>
             </div>
           )}
@@ -278,12 +273,12 @@ export default function CatalogueCheckerView() {
                                 {issue.issue}
                               </span>
                               {/\(.+\)$/.test(issue.productName) && (
-                                <span className="text-[11px] text-slate-400">
+                                <span className="text-[11px] text-slate-200">
                                   {splitItemVariation(issue.productName).variationName} variation
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-400 mt-1 leading-relaxed">{issue.detail}</p>
+                            <p className="text-xs text-slate-200 mt-1 leading-relaxed">{issue.detail}</p>
                           </div>
                           <div className="shrink-0 pt-0.5">
                             {canFix ? (
@@ -294,7 +289,7 @@ export default function CatalogueCheckerView() {
                                 Auto-fix
                               </button>
                             ) : (
-                              <span className="text-[10px] text-slate-400 px-2">Manual</span>
+                              <span className="text-[10px] text-slate-200 px-2">Manual</span>
                             )}
                           </div>
                         </div>
@@ -310,7 +305,7 @@ export default function CatalogueCheckerView() {
 
       {/* No matches */}
       {visibleIssues.length === 0 && issues.length > 0 && (
-        <div className="text-center py-10 text-slate-400 text-sm">
+        <div className="text-center py-10 text-slate-200 text-sm">
           No {filter}s found.{' '}
           <button onClick={() => setFilter('all')} className="text-teal-400 hover:underline cursor-pointer">Show all issues</button>
         </div>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { format, startOfWeek, startOfMonth, endOfWeek, endOfMonth, getDaysInMonth, getDay } from 'date-fns'
-import { useFilteredTransactions, useOverridesMap, useProductCostData, useAllTransactions } from '../db/useTransactions'
+import { useFilteredTransactions, useProductCostData, useAllTransactions } from '../db/useTransactions'
 import { useDateRangeStore } from '../store/dateRangeStore'
 import { useGoalStore } from '../store/goalStore'
 import {
@@ -9,10 +9,9 @@ import {
   computeDailyRevenue,
   computeWeeklyRevenue,
   computeMonthlyRevenue,
-  computeCategoryRevenue,
-  computeStaffStats,
   isSlowMover,
 } from '../engine/analyticsEngine'
+import { useAnalytics } from '../context/AnalyticsContext'
 import { StatCard } from '../components/ui/StatCard'
 import { RevenueChart } from '../components/charts/RevenueChart'
 import { CategoryBreakdownChart } from '../components/charts/CategoryBreakdownChart'
@@ -42,26 +41,17 @@ function pctChange(current: number, previous: number): { label: string; up: bool
 
 export default function DashboardView() {
   const { range } = useDateRangeStore()
-  const transactions = useFilteredTransactions(range)
-  const allTransactions = useAllTransactions()
+  const { transactions, overrides, productStats: stats, daily, weekly, monthly, categories, staffStats, totalRevenue, totalTransactions } = useAnalytics()
   const { weeklyGoal, monthlyGoal, setWeeklyGoal, setMonthlyGoal } = useGoalStore()
   const [editingGoal, setEditingGoal] = useState<'weekly' | 'monthly' | null>(null)
   const [goalInput, setGoalInput] = useState('')
   const prevRange = useMemo(() => previousPeriod(range), [range])
   const prevTransactions = useFilteredTransactions(prevRange)
-  const overrides = useOverridesMap()
   const navigate = useNavigate()
 
-  const stats = useMemo(() => computeProductStats(transactions, overrides), [transactions, overrides])
-  const daily = useMemo(() => computeDailyRevenue(transactions), [transactions])
-  const weekly = useMemo(() => computeWeeklyRevenue(transactions), [transactions])
-  const monthly = useMemo(() => computeMonthlyRevenue(transactions), [transactions])
   const prevDaily = useMemo(() => computeDailyRevenue(prevTransactions), [prevTransactions])
   const prevWeekly = useMemo(() => computeWeeklyRevenue(prevTransactions), [prevTransactions])
   const prevMonthly = useMemo(() => computeMonthlyRevenue(prevTransactions), [prevTransactions])
-  const categories = useMemo(() => computeCategoryRevenue(transactions, overrides), [transactions, overrides])
-
-  const staffStats = useMemo(() => computeStaffStats(transactions), [transactions])
 
   const insights = useMemo(() => {
     if (!daily.length) return null
@@ -72,10 +62,9 @@ export default function DashboardView() {
     return { bestDay, topProduct, slowProduct, topStaff }
   }, [daily, stats, staffStats])
 
+  const allTransactions = useAllTransactions()
   const costData = useProductCostData() ?? []
 
-  const totalRevenue = transactions.reduce((s, t) => s + t.netSales, 0)
-  const totalTransactions = transactions.length
   const avgTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
   const uniqueProducts = stats.length
 
@@ -135,7 +124,7 @@ export default function DashboardView() {
         <div className="max-w-sm w-full space-y-6">
           <div>
             <h1 className="font-display text-2xl font-700 text-slate-100 tracking-tight">Welcome to Walley's Analytics</h1>
-            <p className="text-slate-400 mt-1.5 text-sm">Get started in 3 steps.</p>
+            <p className="text-slate-200 mt-1.5 text-sm">Get started in 3 steps.</p>
           </div>
           <div className="space-y-0 border border-slate-700/50">
             {([
@@ -159,7 +148,7 @@ export default function DashboardView() {
                 <span className="font-mono text-teal-400 font-semibold text-sm w-4 shrink-0 tabular-nums pt-0.5">{step}.</span>
                 <div>
                   <p className="text-sm font-semibold text-slate-200">{title}</p>
-                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{desc}</p>
+                  <p className="text-xs text-slate-200 mt-0.5 leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -212,11 +201,13 @@ export default function DashboardView() {
           />
         )}
         {grossProfit === null && (
-          <StatCard
-            label="Gross Profit"
-            value="—"
-            sub="Add COGS in Profit Margins"
-          />
+          <div onClick={() => navigate('/profit')} className="cursor-pointer">
+            <StatCard
+              label="Gross Profit"
+              value="—"
+              sub="Click to add COGS →"
+            />
+          </div>
         )}
       </div>
 
@@ -228,7 +219,7 @@ export default function DashboardView() {
             {editingGoal ? null : (
               <button
                 onClick={() => { setEditingGoal('weekly'); setGoalInput(weeklyGoal?.toString() ?? '') }}
-                className="text-[10px] text-slate-400 hover:text-slate-300 uppercase tracking-wide"
+                className="text-[10px] text-slate-200 hover:text-slate-300 uppercase tracking-wide"
               >
                 Edit
               </button>
@@ -237,7 +228,7 @@ export default function DashboardView() {
           {editingGoal ? (
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="flex-1">
-                <label className="block text-xs text-slate-400 mb-1">Weekly Target ($)</label>
+                <label className="block text-xs text-slate-200 mb-1">Weekly Target ($)</label>
                 <input
                   type="number"
                   value={editingGoal === 'weekly' ? goalInput : (weeklyGoal?.toString() ?? '')}
@@ -248,7 +239,7 @@ export default function DashboardView() {
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs text-slate-400 mb-1">Monthly Target ($)</label>
+                <label className="block text-xs text-slate-200 mb-1">Monthly Target ($)</label>
                 <input
                   type="number"
                   value={editingGoal === 'monthly' ? goalInput : (monthlyGoal?.toString() ?? '')}
@@ -270,7 +261,7 @@ export default function DashboardView() {
                 >
                   Save
                 </button>
-                <button onClick={() => setEditingGoal(null)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200">
+                <button onClick={() => setEditingGoal(null)} className="px-3 py-1.5 text-xs text-slate-200 hover:text-slate-200">
                   Cancel
                 </button>
               </div>
@@ -287,16 +278,16 @@ export default function DashboardView() {
                 return (
                   <div key={period}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs text-slate-400 capitalize">{period}</span>
+                      <span className="text-xs text-slate-200 capitalize">{period}</span>
                       {goal != null ? (
-                        <span className={`text-xs font-mono font-semibold ${hit ? 'text-emerald-400' : 'text-slate-300'}`}>
+                        <span className={`text-xs font-mono font-semibold ${hit ? 'text-emerald-400' : 'text-slate-100'}`}>
                           {formatCurrency(revenue)} / {formatCurrency(goal)}
                           {hit && ' ✓'}
                         </span>
                       ) : (
                         <button
                           onClick={() => { setEditingGoal(period); setGoalInput('') }}
-                          className="text-xs text-slate-400 hover:text-teal-400"
+                          className="text-xs text-slate-200 hover:text-teal-400"
                         >
                           + Set goal
                         </button>
@@ -315,7 +306,7 @@ export default function DashboardView() {
                           <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
                         </div>
                         {pace != null && !hit && (
-                          <p className="text-[10px] text-slate-400 mt-1">
+                          <p className="text-[10px] text-slate-200 mt-1">
                             On pace for {formatCurrency(pace)} this {period === 'weekly' ? 'week' : 'month'}
                           </p>
                         )}
@@ -338,14 +329,14 @@ export default function DashboardView() {
         <div className="border border-slate-700/50 bg-slate-800/25 px-5 py-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-teal-400 mb-3">Quick Insights</p>
           <ul className="space-y-1.5 text-sm">
-            <li className="text-slate-300">
+            <li className="text-slate-100">
               Best day:{' '}
               <span className="text-slate-200">
                 {format(insights.bestDay.date, 'EEE, MMM d')} — {formatCurrency(insights.bestDay.revenue)}
               </span>
             </li>
             {insights.topProduct && (
-              <li className="text-slate-300">
+              <li className="text-slate-100">
                 Top seller:{' '}
                 <span className="text-slate-200">
                   {insights.topProduct.name} ({formatNumber(insights.topProduct.totalUnitsSold)} units,{' '}
@@ -354,14 +345,14 @@ export default function DashboardView() {
               </li>
             )}
             {insights.slowProduct && (
-              <li className="text-slate-300">
+              <li className="text-slate-100">
                 Slow mover:{' '}
                 <span className="text-amber-400">{insights.slowProduct.name}</span>
                 {' '}— no sales in {Math.floor((Date.now() - insights.slowProduct.lastSoldDate.getTime()) / 86_400_000)} days
               </li>
             )}
             {insights.topStaff && insights.topStaff.name !== 'Unknown' && (
-              <li className="text-slate-300">
+              <li className="text-slate-100">
                 Top staff:{' '}
                 <span className="text-slate-200">
                   {insights.topStaff.name} — {formatCurrency(insights.topStaff.totalSales)} across{' '}
