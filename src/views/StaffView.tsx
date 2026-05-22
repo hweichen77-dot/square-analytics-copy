@@ -110,11 +110,10 @@ export default function StaffView() {
             {staffStats.map((s, i) => {
               const avg = s.transactionCount > 0 ? s.totalSales / s.transactionCount : 0
               const share = totalRevenue > 0 ? (s.totalSales / totalRevenue) * 100 : 0
-              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null
               return (
                 <div key={s.name} className="flex items-center gap-4 px-5 py-3">
                   <span className="w-6 text-center shrink-0">
-                    {medal ?? <span className="text-xs font-mono text-slate-300">{i + 1}</span>}
+                    <span className="text-xs font-mono text-slate-300">{i + 1}</span>
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-100 truncate">{s.name}</p>
