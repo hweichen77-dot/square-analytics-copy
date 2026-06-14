@@ -1,6 +1,6 @@
-# Walley's Analytics
+# Square Analytics
 
-Sales analytics and inventory management for Walley's School Store.
+Sales analytics and inventory management for Walley's School Store, powered by Square POS data.
 
 ## Features
 
@@ -41,4 +41,4 @@ npm run tauri build
 
 ## Version
 
-v1.0.0
+v1.6.1
