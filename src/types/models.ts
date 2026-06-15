@@ -29,6 +29,11 @@ export interface SalesTransaction {
   totalCollected?: number
   fees?: number        // negative in Square CSV (e.g. -0.27); stored as-is
   netTotal?: number    // totalCollected + fees
+  // Payments API enrichment (populated during Square sync when a matching payment is found)
+  processingFee?: number   // in cents (e.g. 27 = $0.27); from Payments API processingFee[0].amountMoney.amount
+  paymentSourceType?: string  // authoritative: 'CARD' | 'CASH' | 'WALLET' | 'BANK_ACCOUNT' | 'EXTERNAL'
+  cardBrand?: string       // e.g. 'VISA', 'MASTERCARD'
+  cardLastFour?: string    // last 4 digits of card
 }
 
 export const OPEX_CATEGORIES = [

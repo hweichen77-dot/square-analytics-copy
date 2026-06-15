@@ -1,7 +1,7 @@
 import { subDays } from 'date-fns'
 import { useAuthStore } from '../store/authStore'
 import { refreshAccessToken } from './squareAuth'
-import { fetchOrders, fetchCatalogue, fetchInventory, fetchTeamMembers, fetchCustomersByIds } from './squareAPIClient'
+import { fetchOrders, fetchCatalogue, fetchInventory, fetchTeamMembers, fetchCustomersByIds, fetchPayments } from './squareAPIClient'
 import type { SquareOrder, SquareCatalogItem } from './squareAPIClient'
 import { upsertTransactions, upsertCatalogueProducts } from '../db/dbUtils'
 import type { SalesTransaction, CatalogueProduct, TransactionLineItem } from '../types/models'
@@ -199,6 +199,31 @@ async function _runSyncImpl(
     if (tx.customerID && customerMap[tx.customerID]) {
       tx.customerName = customerMap[tx.customerID]
     }
+  }
+
+  // Enrich transactions with Payments API data: authoritative payment source type,
+  // processing fees, and card details. Best-effort — sync continues on failure.
+  try {
+    const payments = await fetchPayments(
+      accessToken,
+      locationID,
+      startDate.toISOString(),
+      endDate.toISOString(),
+    )
+    // Payments are keyed by orderId — not all payments have an orderId (e.g. gift card top-ups)
+    const paymentByOrderId = new Map(
+      payments.filter(p => p.orderId).map(p => [p.orderId!, p]),
+    )
+    for (const tx of txRows) {
+      const payment = paymentByOrderId.get(tx.transactionID)
+      if (!payment) continue
+      tx.paymentSourceType = payment.sourceType
+      tx.processingFee = payment.processingFee?.[0]?.amountMoney?.amount ?? 0
+      tx.cardBrand = payment.cardDetails?.card?.cardBrand
+      tx.cardLastFour = payment.cardDetails?.card?.last4
+    }
+  } catch {
+    // Payments API is optional — sync continues without fee/source-type data if it fails
   }
 
   const ordersAdded = await upsertTransactions(txRows)

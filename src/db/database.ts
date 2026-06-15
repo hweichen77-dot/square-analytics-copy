@@ -102,6 +102,23 @@ class WalleysDB extends Dexie {
       opexEntries: '++id, month, category',
       staffWages: '++id, &staffName',
     })
+
+    // Version 6: add Payments API enrichment fields (processingFee, paymentSourceType,
+    // cardBrand, cardLastFour) to salesTransactions. All fields are optional so no
+    // data migration is required — existing rows simply lack these fields.
+    this.version(6).stores({
+      salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
+      categoryOverrides: '++id, &productName',
+      restockLogs: '++id, productName, date',
+      productCostData: '++id, &productName',
+      storeEvents: '++id, startDate, endDate',
+      productBundles: '++id, name',
+      catalogueProducts: '++id, &name, itemName, variationName, sku, category, enabled',
+      opexEntries: '++id, month, category',
+      staffWages: '++id, &staffName',
+    }).upgrade(_tx => {
+      // No data migration needed — new fields are optional and default to undefined
+    })
   }
 }
 

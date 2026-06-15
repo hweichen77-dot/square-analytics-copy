@@ -257,6 +257,45 @@ export async function fetchCustomersByIds(token: string, ids: string[]): Promise
   return customers
 }
 
+export interface SquarePayment {
+  id: string
+  orderId?: string
+  amountMoney: { amount: number; currency: string }
+  processingFee?: Array<{ amountMoney: { amount: number } }>
+  status: string
+  sourceType: string  // 'CARD' | 'CASH' | 'WALLET' | 'BANK_ACCOUNT' | 'EXTERNAL'
+  cardDetails?: { card?: { cardBrand?: string; last4?: string } }
+  createdAt: string
+}
+
+export async function fetchPayments(
+  accessToken: string,
+  locationId: string,
+  beginTime: string,
+  endTime: string,
+): Promise<SquarePayment[]> {
+  const payments: SquarePayment[] = []
+  let cursor: string | undefined
+
+  do {
+    const url = new URL(`${BASE}/payments`)
+    url.searchParams.set('location_id', locationId)
+    url.searchParams.set('begin_time', beginTime)
+    url.searchParams.set('end_time', endTime)
+    url.searchParams.set('limit', '100')
+    if (cursor) url.searchParams.set('cursor', cursor)
+
+    const data = await squareRequest(accessToken, 'GET', url.toString()) as {
+      payments?: SquarePayment[]
+      cursor?: string
+    }
+    if (data.payments) payments.push(...data.payments)
+    cursor = data.cursor
+  } while (cursor)
+
+  return payments
+}
+
 export async function fetchInventory(token: string, locationID: string): Promise<SquareInventoryCount[]> {
   const counts: SquareInventoryCount[] = []
   let cursor: string | undefined

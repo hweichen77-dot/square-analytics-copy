@@ -368,6 +368,12 @@ export default function ProfitView() {
     () => computeGrossProfit(cachedStats, costData, totalRevenue),
     [cachedStats, costData, totalRevenue],
   )
+  // Processing fees from Payments API (stored in cents on each transaction)
+  const totalProcessingFees = useMemo(
+    () => transactions.reduce((s, t) => s + (t.processingFee ?? 0), 0) / 100,
+    [transactions],
+  )
+  const hasProcessingFees = totalProcessingFees > 0
   const moneyLosers = useMemo(() => profitRows.filter(r => r.marginPercent !== null && r.marginPercent <= 0), [profitRows])
 
   const top15Profit = useMemo(
@@ -427,6 +433,26 @@ export default function ProfitView() {
           </div>
         ))}
       </div>
+
+      {hasProcessingFees && (
+        <div className="bg-slate-800/30 border border-slate-700/40 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-slate-200 mb-3">Revenue Breakdown (with Payment Fees)</h2>
+          <div className="space-y-2 text-sm font-mono">
+            <div className="flex justify-between text-slate-100">
+              <span>Gross Revenue</span>
+              <span>{formatCurrency(totalRevenue)}</span>
+            </div>
+            <div className="flex justify-between text-amber-400">
+              <span>Processing Fees</span>
+              <span>- {formatCurrency(totalProcessingFees)}</span>
+            </div>
+            <div className="border-t border-slate-700/50 pt-2 flex justify-between font-bold text-teal-400">
+              <span>Net Revenue (after fees)</span>
+              <span>{formatCurrency(totalRevenue - totalProcessingFees)}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {moneyLosers.length > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5">
