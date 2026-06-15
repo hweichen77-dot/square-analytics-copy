@@ -11,13 +11,13 @@ import {
   computeMonthlyRevenue,
   isSlowMover,
 } from '../engine/analyticsEngine'
+import { computeGrossProfit } from '../engine/reportEngine'
 import { useAnalytics } from '../context/AnalyticsContext'
 import { StatCard } from '../components/ui/StatCard'
 import { RevenueChart } from '../components/charts/RevenueChart'
 import { CategoryBreakdownChart } from '../components/charts/CategoryBreakdownChart'
 import { TopProductsChart } from '../components/charts/TopProductsChart'
 import { formatCurrency, formatNumber } from '../utils/format'
-import { lookupUnitCost } from '../types/models'
 import type { DateRange } from '../db/useTransactions'
 
 /** Shift a date range back by its own duration to get the preceding period. */
@@ -68,16 +68,10 @@ export default function DashboardView() {
   const avgTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
   const uniqueProducts = stats.length
 
-  const { grossProfit, marginPct } = useMemo(() => {
-    if (!costData.length) return { grossProfit: null, marginPct: null }
-    let cogs = 0
-    for (const s of stats) {
-      const unitCost = lookupUnitCost(s.name, costData)
-      if (unitCost != null) cogs += unitCost * s.totalUnitsSold
-    }
-    const gp = totalRevenue - cogs
-    return { grossProfit: gp, marginPct: totalRevenue > 0 ? (gp / totalRevenue) * 100 : null }
-  }, [costData, stats, totalRevenue])
+  const { grossProfit, marginPct } = useMemo(
+    () => computeGrossProfit(stats, costData, totalRevenue),
+    [stats, costData, totalRevenue],
+  )
 
   const goalProgress = useMemo(() => {
     const now = new Date()

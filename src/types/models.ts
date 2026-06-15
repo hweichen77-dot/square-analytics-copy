@@ -127,15 +127,45 @@ function stripLeadingAsterisk(name: string): string {
   return name.startsWith('*') ? name.slice(1).trim() : name
 }
 
+/**
+ * CSV-aware comma splitter: respects double-quoted fields so that product names
+ * containing commas (e.g. "Burger, Deluxe") are not incorrectly split.
+ */
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i]
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote inside a quoted field
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current.trim())
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  result.push(current.trim())
+  return result
+}
+
 export function parseProductItems(description: string): ProductItem[] {
   if (!description.trim()) return []
-  // Split on commas that precede a quantity prefix to avoid splitting product
-  // names that contain commas (e.g. "Cake, Small"). Falls back to comma split
-  // when no quantity markers are present.
+  // When quantity prefixes are present (e.g. "2x Latte, 1x Croissant") split
+  // only on commas that are immediately followed by a qty marker so that product
+  // names with commas (e.g. "Cake, Small") are preserved.
+  // Otherwise use the CSV-aware splitter to honour quoted fields.
   const hasQtyPrefix = /^\s*\d+\s*[xX]\s+/.test(description)
   const parts = hasQtyPrefix
     ? description.split(/,\s*(?=\d+\s*[xX]\s+)/)
-    : description.split(',')
+    : parseCSVLine(description)
   return parts.flatMap(part => {
     const trimmed = part.trim()
     const match = trimmed.match(/^(\d+)\s*[xX]\s+(.+)$/i)

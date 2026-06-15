@@ -3,13 +3,30 @@ import type { SalesTransaction } from '../types/models'
 
 function parseDateTime(value: string): Date | null {
   if (!value) return null
-  const iso = new Date(value)
-  if (!isNaN(iso.getTime())) return iso
-  const match = value.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/)
+
+  // a) ISO 8601: only trust new Date() when the string contains '-' (avoids
+  //    MM/DD/YYYY being silently misinterpreted by some JS engines as ISO-like)
+  if (value.includes('-')) {
+    const iso = new Date(value)
+    if (!isNaN(iso.getTime())) return iso
+  }
+
+  // b) MM/DD/YYYY [HH:MM[:SS]] or M/D/YYYY [HH:MM[:SS]]
+  const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/)
   if (match) {
     const [, m, d, y, h, min, sec] = match
-    return new Date(+y, +m - 1, +d, +h, +min, +(sec ?? 0))
+    const hour = h !== undefined ? +h : 0
+    const minute = min !== undefined ? +min : 0
+    const second = sec !== undefined ? +sec : 0
+    const date = new Date(+y, +m - 1, +d, hour, minute, second)
+    if (!isNaN(date.getTime())) return date
   }
+
+  // c) Last resort: try native parser for any other format (e.g. "Jan 15 2024")
+  const fallback = new Date(value)
+  if (!isNaN(fallback.getTime())) return fallback
+
+  console.warn(`[csvParser] Could not parse date: "${value}"`)
   return null
 }
 

@@ -1,55 +1,83 @@
 const BASE = 'https://connect.squareup.com/v2'
+const SQUARE_TIMEOUT_MS = 10_000
+const MAX_RETRIES = 3
 
 function isTauri(): boolean {
   return (window as any).__TAURI_INTERNALS__ !== undefined
 }
 
+const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms))
+
+/**
+ * Fetch wrapper for Square API browser calls.
+ * Adds a 10-second timeout via AbortController and retries on 429 (up to MAX_RETRIES).
+ */
+async function squareFetch(
+  url: string,
+  options: RequestInit,
+  attempt = 0,
+): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), SQUARE_TIMEOUT_MS)
+
+  let res: Response
+  try {
+    res = await fetch(url, { ...options, signal: controller.signal })
+    clearTimeout(timer)
+  } catch (err) {
+    clearTimeout(timer)
+    if ((err as Error).name === 'AbortError') {
+      throw new Error('Square API timed out after 10s')
+    }
+    throw err
+  }
+
+  if (res.status === 429 && attempt < MAX_RETRIES) {
+    const retryAfter = parseInt(res.headers.get('Retry-After') ?? '1', 10)
+    await sleep(retryAfter * 1000)
+    return squareFetch(url, options, attempt + 1)
+  }
+
+  return res
+}
+
 /**
  * All Square API calls go through this function.
  * In Tauri: routed via Rust/reqwest to avoid any webview CORS edge cases.
- * In browser: standard fetch with correct headers.
+ * In browser: squareFetch with timeout + 429 retry.
  */
 async function squareRequest(
   token: string,
   method: 'GET' | 'POST',
   url: string,
   body?: unknown,
-  _attempt = 0,
 ): Promise<unknown> {
-  try {
-    if (isTauri()) {
-      const { invoke } = await import('@tauri-apps/api/core')
-      const text = await invoke<string>('proxy_square_api', {
-        accessToken: token,
-        method,
-        url,
-        body: body ? JSON.stringify(body) : null,
-      })
-      return JSON.parse(text)
-    }
-
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Square-Version': '2023-10-18',
-    }
-    const res = await fetch(url, {
+  if (isTauri()) {
+    const { invoke } = await import('@tauri-apps/api/core')
+    const text = await invoke<string>('proxy_square_api', {
+      accessToken: token,
       method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
+      url,
+      body: body ? JSON.stringify(body) : null,
     })
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`Square API error ${res.status}: ${text}`)
-    }
-    return res.json()
-  } catch (err) {
-    if (_attempt < 3 && String(err).includes('429')) {
-      await new Promise(r => setTimeout(r, 1000 * 2 ** _attempt))
-      return squareRequest(token, method, url, body, _attempt + 1)
-    }
-    throw err
+    return JSON.parse(text)
   }
+
+  const headers: Record<string, string> = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'Square-Version': '2023-10-18',
+  }
+  const res = await squareFetch(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Square API error ${res.status}: ${text}`)
+  }
+  return res.json()
 }
 
 export interface SquareLocation {

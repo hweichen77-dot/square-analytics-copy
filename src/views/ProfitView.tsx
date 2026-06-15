@@ -10,6 +10,7 @@ import { db } from '../db/database'
 import { formatCurrency } from '../utils/format'
 import type { ProductCostData } from '../types/models'
 import { effectiveUnitCost } from '../types/models'
+import { computeGrossProfit } from '../engine/reportEngine'
 import { useToastStore } from '../store/toastStore'
 
 const PALETTE = ['#14B8A6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6']
@@ -362,6 +363,11 @@ export default function ProfitView() {
   const totalProfit = useMemo(() => profitRows.reduce((s, r) => s + (r.totalProfit ?? 0), 0), [profitRows])
   const coveredRevenue = useMemo(() => profitRows.filter(r => r.hasCostData).reduce((s, r) => s + r.totalRevenue, 0), [profitRows])
   const overallMargin = coveredRevenue > 0 ? (totalProfit / coveredRevenue) * 100 : 0
+  // Shared gross profit — matches Dashboard StatCard exactly (uses same lookupUnitCost logic)
+  const sharedGP = useMemo(
+    () => computeGrossProfit(cachedStats, costData, totalRevenue),
+    [cachedStats, costData, totalRevenue],
+  )
   const moneyLosers = useMemo(() => profitRows.filter(r => r.marginPercent !== null && r.marginPercent <= 0), [profitRows])
 
   const top15Profit = useMemo(
@@ -410,8 +416,8 @@ export default function ProfitView() {
       <div className="grid grid-cols-5 gap-3">
         {[
           { label: 'Total Revenue', value: formatCurrency(totalRevenue), color: '#3b82f6' },
-          { label: 'Total Cost', value: formatCurrency(totalCost), color: '#f59e0b' },
-          { label: 'Total Gross Profit', value: formatCurrency(totalProfit), color: totalProfit >= 0 ? '#16a34a' : '#dc2626' },
+          { label: 'Total Cost', value: formatCurrency(sharedGP.cogs || totalCost), color: '#f59e0b' },
+          { label: 'Total Gross Profit', value: sharedGP.grossProfit !== null ? formatCurrency(sharedGP.grossProfit) : formatCurrency(totalProfit), color: (sharedGP.grossProfit ?? totalProfit) >= 0 ? '#16a34a' : '#dc2626' },
           { label: coveredRevenue < totalRevenue ? `Margin (${Math.round(coveredRevenue / totalRevenue * 100)}% of rev)` : 'Overall Margin', value: totalCost > 0 ? `${overallMargin.toFixed(1)}%` : '—', color: totalCost > 0 ? marginColor(overallMargin) : '#9ca3af' },
           { label: 'Costs Entered', value: `${profitRows.filter(r => r.hasCostData).length}/${rawStats.length}`, color: '#9ca3af' },
         ].map(c => (

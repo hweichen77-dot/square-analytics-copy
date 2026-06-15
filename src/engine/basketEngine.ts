@@ -66,11 +66,18 @@ export function computeBasketAnalysis(
   for (const [key, coCount] of pairCounts) {
     if (coCount < minCoOccurrences) continue
     const [itemA, itemB] = key.split('\x00')
-    const countA = itemCounts.get(itemA) ?? 1
-    const countB = itemCounts.get(itemB) ?? 1
-    const support = totalTransactions > 0 ? coCount / totalTransactions : 0
-    const lift = totalTransactions > 0 ? (coCount * totalTransactions) / (countA * countB) : 0
-    const confidence = coCount / countA
+    const countA = itemCounts.get(itemA) ?? 0
+    const countB = itemCounts.get(itemB) ?? 0
+
+    // Guard all denominators against division-by-zero
+    if (!totalTransactions || !countA || !countB) {
+      pairs.push({ itemA, itemB, coOccurrences: coCount, support: 0, lift: 0, confidence: 0 })
+      continue
+    }
+
+    const support = coCount / totalTransactions
+    const lift = (coCount * totalTransactions) / (countA * countB)
+    const confidence = countA > 0 ? coCount / countA : 0
 
     pairs.push({ itemA, itemB, coOccurrences: coCount, support, lift, confidence })
   }

@@ -1,6 +1,6 @@
 import { format, parseISO, startOfWeek, addDays } from 'date-fns'
 import type { SalesTransaction, OpexEntry, ProductCostData } from '../types/models'
-import { effectiveUnitCost } from '../types/models'
+import { effectiveUnitCost, lookupUnitCost } from '../types/models'
 import {
   computeProductStats,
   computeRevenueByGranularity,
@@ -8,6 +8,34 @@ import {
 } from './analyticsEngine'
 import type { ProductStats, DailyRevenue, MonthlyComparison, TimeGranularity } from './analyticsEngine'
 import { DAY_NAMES } from '../utils/format'
+
+// ─── Shared Gross Profit ──────────────────────────────────────────────────────
+
+export interface GrossProfitResult {
+  grossProfit: number | null
+  marginPct: number | null
+  cogs: number
+}
+
+/**
+ * Canonical gross profit computation shared by Dashboard and ProfitView.
+ * Returns null grossProfit/marginPct when no cost data is available.
+ */
+export function computeGrossProfit(
+  productStats: ProductStats[],
+  costData: ProductCostData[],
+  totalRevenue: number,
+): GrossProfitResult {
+  if (!costData.length) return { grossProfit: null, marginPct: null, cogs: 0 }
+  let cogs = 0
+  for (const s of productStats) {
+    const unitCost = lookupUnitCost(s.name, costData)
+    if (unitCost != null) cogs += unitCost * s.totalUnitsSold
+  }
+  const grossProfit = totalRevenue - cogs
+  const marginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : null
+  return { grossProfit, marginPct, cogs }
+}
 
 export type ReportType =
   | 'revenue'
