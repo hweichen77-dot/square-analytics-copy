@@ -25,7 +25,6 @@ export default function ForecastView() {
   const navigate = useNavigate()
   const forecast = useMemo(() => computeForecast(transactions), [transactions])
 
-  // Must be before any early returns (Rules of Hooks)
   const accuracyData = useMemo(() => {
     if (!forecast.hasEnoughData) return null
     const elapsedDays = forecast.thisWeek.days.filter(d => d.actualRevenue !== null)
@@ -66,12 +65,10 @@ export default function ForecastView() {
 
   const { thisWeek, nextWeek, trendLabel } = forecast
 
-  // Progress through this week
   const daysWithData = thisWeek.days.filter(d => d.actualRevenue !== null).length
   const progressPct = daysWithData > 0 && thisWeek.projectedTotal > 0 ? Math.min(100, (thisWeek.actualTotal / thisWeek.projectedTotal) * 100) : 0
   const onTrack = thisWeek.projectedTotal > 0 && thisWeek.actualTotal >= (thisWeek.projectedTotal * (daysWithData / 7) * 0.9)
 
-  // Chart data for this week
   const thisWeekData = thisWeek.days.map(d => ({
     label: d.dayLabel,
     actual: d.actualRevenue ?? undefined,
@@ -79,7 +76,6 @@ export default function ForecastView() {
     projectedOverlay: d.projectedRevenue,
   }))
 
-  // Chart data for next week
   const nextWeekData = nextWeek.days.map(d => ({
     label: d.dayLabel,
     projected: d.projectedRevenue,
@@ -94,7 +90,6 @@ export default function ForecastView() {
         <TrendBadge label={trendLabel} />
       </div>
 
-      {/* On-track banner */}
       {daysWithData > 0 && (
         <div className={`border p-5 ${onTrack ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
           <div className="flex items-start justify-between">
@@ -128,7 +123,6 @@ export default function ForecastView() {
         </div>
       )}
 
-      {/* This week chart */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="font-semibold text-slate-200 mb-1">{weekLabel(thisWeek.weekStart)} — Current Week</h2>
         <p className="text-xs text-slate-200 mb-4">Solid bars = actual revenue. Striped bars = forecast for remaining days.</p>
@@ -144,7 +138,6 @@ export default function ForecastView() {
         </ResponsiveContainer>
       </div>
 
-      {/* Next week chart */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-semibold text-slate-200">{weekLabel(nextWeek.weekStart)} — Forecast</h2>
@@ -166,9 +159,7 @@ export default function ForecastView() {
         </ResponsiveContainer>
       </div>
 
-      {/* Accuracy + stats row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Forecast accuracy card */}
         {accuracyData && (
           <div className="bg-slate-800/30 border border-slate-700/40 p-4">
             <p className="text-xs text-slate-200 font-medium mb-1">Forecast Accuracy (This Week)</p>
@@ -184,7 +175,6 @@ export default function ForecastView() {
           </div>
         )}
 
-        {/* Next week projected */}
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
           <p className="text-xs text-slate-200 font-medium mb-1">Next Week Projection</p>
           <p className="text-3xl font-bold tabular-nums text-teal-400">{formatCurrency(nextWeek.projectedTotal)}</p>
@@ -193,7 +183,6 @@ export default function ForecastView() {
           </p>
         </div>
 
-        {/* Weeks of data */}
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
           <p className="text-xs text-slate-200 font-medium mb-1">History Used</p>
           <p className="text-3xl font-bold tabular-nums text-slate-200">{forecast.weeksOfHistory}</p>
@@ -203,7 +192,6 @@ export default function ForecastView() {
         </div>
       </div>
 
-      {/* Top 5 products by demand */}
       {topProducts.length > 0 && (
         <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-700/50">

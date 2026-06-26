@@ -5,9 +5,9 @@ export interface BasketPair {
   itemA: string
   itemB: string
   coOccurrences: number
-  support: number      // co_occurrences / total_transactions
-  lift: number         // how much more likely than by chance (>1 = positive association)
-  confidence: number   // P(B | A) — if someone buys A, probability they also buy B
+  support: number
+  lift: number
+  confidence: number
 }
 
 export interface BasketResult {
@@ -17,16 +17,10 @@ export interface BasketResult {
   uniqueItems: number
 }
 
-/**
- * Apriori-style association rule mining over Square transactions.
- * Groups rows by transactionID so each order is treated as one basket,
- * then counts item pair co-occurrences and computes lift + confidence.
- */
 export function computeBasketAnalysis(
   transactions: SalesTransaction[],
   minCoOccurrences = 2,
 ): BasketResult {
-  // Build baskets: one Set<itemName> per transactionID
   const baskets = new Map<string, Set<string>>()
   for (const tx of transactions) {
     const items = parseProductItems(tx.itemDescription)
@@ -40,7 +34,6 @@ export function computeBasketAnalysis(
   const totalTransactions = allBaskets.length
   const multiItemTransactions = allBaskets.filter(b => b.size > 1).length
 
-  // Individual item counts
   const itemCounts = new Map<string, number>()
   for (const basket of allBaskets) {
     for (const item of basket) {
@@ -50,7 +43,6 @@ export function computeBasketAnalysis(
 
   const uniqueItems = itemCounts.size
 
-  // Pair co-occurrence counts (always store with sorted keys so A < B)
   const pairCounts = new Map<string, number>()
   for (const basket of allBaskets) {
     const items = Array.from(basket).sort()
@@ -69,7 +61,6 @@ export function computeBasketAnalysis(
     const countA = itemCounts.get(itemA) ?? 0
     const countB = itemCounts.get(itemB) ?? 0
 
-    // Guard all denominators against division-by-zero
     if (!totalTransactions || !countA || !countB) {
       pairs.push({ itemA, itemB, coOccurrences: coCount, support: 0, lift: 0, confidence: 0 })
       continue

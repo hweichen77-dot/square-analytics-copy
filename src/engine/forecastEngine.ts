@@ -4,16 +4,16 @@ import type { SalesTransaction } from '../types/models'
 export interface ForecastDay {
   date: Date
   dayLabel: string
-  dayOfWeek: number   // 1=Sun … 7=Sat (app convention)
+  dayOfWeek: number
   projectedRevenue: number
-  actualRevenue: number | null  // null for future days
+  actualRevenue: number | null
 }
 
 export interface WeekForecast {
   weekStart: Date
   days: ForecastDay[]
   projectedTotal: number
-  actualTotal: number   // sum of actual days only
+  actualTotal: number
 }
 
 export interface ForecastResult {
@@ -28,15 +28,14 @@ export interface ForecastResult {
 export interface AnomalyDay {
   date: Date
   dayLabel: string
-  dayOfWeek: number   // 1=Sun … 7=Sat
+  dayOfWeek: number
   actualRevenue: number
   expectedRevenue: number
-  percentDiff: number   // positive = above expected, negative = below
+  percentDiff: number
   direction: 'above' | 'below'
   severity: 'mild' | 'strong'
 }
 
-// ─── Internal helpers ─────────────────────────────────────────────────────────
 
 function computeDailyTotals(txs: SalesTransaction[]): Map<string, number> {
   const map = new Map<string, number>()
@@ -62,7 +61,6 @@ function emptyWeek(ws: Date): WeekForecast {
   }
 }
 
-// ─── Forecasting ──────────────────────────────────────────────────────────────
 
 export function computeForecast(transactions: SalesTransaction[]): ForecastResult {
   const today = startOfDay(new Date())
@@ -82,7 +80,6 @@ export function computeForecast(transactions: SalesTransaction[]): ForecastResul
 
   const dailyTotals = computeDailyTotals(transactions)
 
-  // Collect complete historical weeks before this one
   const allDateKeys = Array.from(dailyTotals.keys()).sort()
   if (allDateKeys.length === 0) {
     return {
@@ -121,7 +118,6 @@ export function computeForecast(transactions: SalesTransaction[]): ForecastResul
     }
   }
 
-  // DOW baseline from up to last 12 weeks
   const baselineWeeks = historicalWeeks.slice(-Math.min(12, weeksOfHistory))
   const dowSums = new Array(7).fill(0)
   const dowCounts = new Array(7).fill(0)
@@ -137,7 +133,6 @@ export function computeForecast(transactions: SalesTransaction[]): ForecastResul
 
   const dowBaseline = dowSums.map((sum, i) => (dowCounts[i] > 0 ? sum / dowCounts[i] : 0))
 
-  // Trend: last 4 weeks vs prior 4 weeks. Requires ≥8 weeks for a stable baseline.
   let trendFactor = 1.0
   if (weeksOfHistory >= 8) {
     const last4Avg = historicalWeeks.slice(-4).reduce((s, w) => s + w.revenue, 0) / 4
@@ -154,7 +149,6 @@ export function computeForecast(transactions: SalesTransaction[]): ForecastResul
     trendPct < -1.5 ? `${trendPct.toFixed(1)}% decline trend` :
     'Stable trend'
 
-  // This week
   const thisWeekDays: ForecastDay[] = []
   let thisActual = 0
   let thisProjected = 0
@@ -176,7 +170,6 @@ export function computeForecast(transactions: SalesTransaction[]): ForecastResul
     }
   }
 
-  // Next week
   const nextWeekDays: ForecastDay[] = []
   let nextProjected = 0
 
@@ -197,21 +190,18 @@ export function computeForecast(transactions: SalesTransaction[]): ForecastResul
   }
 }
 
-// ─── Anomaly detection ────────────────────────────────────────────────────────
 
 export function computeAnomalies(transactions: SalesTransaction[]): AnomalyDay[] {
   if (transactions.length === 0) return []
 
   const dailyTotals = computeDailyTotals(transactions)
 
-  // Group daily revenues by day-of-week (JS Date.getDay(): 0=Sun…6=Sat)
   const dowEntries: { dateKey: string; revenue: number }[][] = Array.from({ length: 7 }, () => [])
   for (const [dateKey, revenue] of dailyTotals) {
     const dow = new Date(dateKey + 'T00:00:00').getDay()
     dowEntries[dow].push({ dateKey, revenue })
   }
 
-  // Per-DOW mean + std dev
   const dowStats = dowEntries.map(entries => {
     if (entries.length < 3) return { mean: 0, std: 0 }
     const mean = entries.reduce((s, e) => s + e.revenue, 0) / entries.length

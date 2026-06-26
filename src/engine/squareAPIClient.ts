@@ -8,10 +8,6 @@ function isTauri(): boolean {
 
 const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms))
 
-/**
- * Fetch wrapper for Square API browser calls.
- * Adds a 10-second timeout via AbortController and retries on 429 (up to MAX_RETRIES).
- */
 async function squareFetch(
   url: string,
   options: RequestInit,
@@ -41,11 +37,6 @@ async function squareFetch(
   return res
 }
 
-/**
- * All Square API calls go through this function.
- * In Tauri: routed via Rust/reqwest to avoid any webview CORS edge cases.
- * In browser: squareFetch with timeout + 429 retry.
- */
 async function squareRequest(
   token: string,
   method: 'GET' | 'POST',
@@ -99,15 +90,11 @@ export interface SquareOrderLineItem {
 export interface SquareOrder {
   id: string
   created_at: string
-  // closed_at is when the order was actually completed — prefer over created_at for date bucketing
   closed_at?: string
   tenders?: { type: string; amount_money?: { amount: number } }[]
   line_items?: SquareOrderLineItem[]
-  // net_amounts reflects post-discount, post-refund, post-tip totals — use this first
   net_amounts?: { total_money: { amount: number } }
-  // total_money is the order total before tips; present on older API responses
   total_money?: { amount: number }
-  // return_amounts is present when refunds have been applied to this order
   return_amounts?: { total_money: { amount: number } }
   employee_id?: string
   customer_id?: string
@@ -131,7 +118,6 @@ export interface SquareCatalogItem {
     is_taxable?: boolean
     is_archived?: boolean
   }
-  // Present when type === 'CATEGORY'
   category_data?: {
     name: string
   }
@@ -186,7 +172,6 @@ export async function fetchOrders(
   return orders
 }
 
-// Fetches both ITEM and CATEGORY objects so category names can be resolved.
 export async function fetchCatalogue(token: string): Promise<SquareCatalogItem[]> {
   const items: SquareCatalogItem[] = []
   let cursor: string | undefined
@@ -244,7 +229,6 @@ export interface SquareCustomer {
 export async function fetchCustomersByIds(token: string, ids: string[]): Promise<SquareCustomer[]> {
   if (ids.length === 0) return []
   const customers: SquareCustomer[] = []
-  // Batch-retrieve in chunks of 100 (Square API limit)
   for (let i = 0; i < ids.length; i += 100) {
     const chunk = ids.slice(i, i + 100)
     const data = await squareRequest(token, 'POST', `${BASE}/customers/batch-retrieve`, { customer_ids: chunk }) as {
@@ -263,7 +247,7 @@ export interface SquarePayment {
   amountMoney: { amount: number; currency: string }
   processingFee?: Array<{ amountMoney: { amount: number } }>
   status: string
-  sourceType: string  // 'CARD' | 'CASH' | 'WALLET' | 'BANK_ACCOUNT' | 'EXTERNAL'
+  sourceType: string
   cardDetails?: { card?: { cardBrand?: string; last4?: string } }
   createdAt: string
 }
@@ -305,9 +289,6 @@ export interface SquareRefund {
   reason?: string
 }
 
-// Refunds API: POST /v2/refunds/search filtered by location + created_at window.
-// Paginates via cursor, mirroring fetchOrders. Square-Version header is added by
-// squareRequest for all calls.
 export async function fetchRefunds(
   accessToken: string,
   locationId: string,
@@ -365,8 +346,6 @@ export interface SquareShift {
   wage?: { hourlyRate?: { amount: number; currency: string }; title?: string }
 }
 
-// Labor/Shifts API: POST /v2/labor/shifts/search filtered by location + start window.
-// Paginates via cursor. Returns normalized SquareShift records.
 export async function fetchShifts(
   accessToken: string,
   locationId: string,
@@ -391,7 +370,6 @@ export async function fetchShifts(
     const data = await squareRequest(accessToken, 'POST', `${BASE}/labor/shifts/search`, body) as {
       shifts?: Array<{
         id: string
-        // Newer API uses team_member_id; older responses used employee_id
         team_member_id?: string
         employee_id?: string
         start_at?: string

@@ -71,7 +71,6 @@ function excelSerialToYearMonth(serial: number): string {
   return fmtDate(date, 'yyyy-MM')
 }
 
-// Header aliases for OPEX columns — matches case-insensitively
 const OPEX_DATE_HEADERS = ['date', 'month', 'period', 'entry date']
 const OPEX_AMOUNT_HEADERS = ['amount', 'cost', 'expense', 'total', 'value', 'price']
 const OPEX_NAME_HEADERS = ['name', 'description', 'item', 'expense name', 'vendor', 'notes', 'detail']
@@ -99,7 +98,6 @@ export async function importOpexXLSX(file: File): Promise<ImportResult> {
     return { added: 0, total: 0, skipped: 0, errors: ['XLSX file has no data rows.'] }
   }
 
-  // Detect header row — try row 0 first, then row 1 (some sheets have a title in row 0)
   const headerRow0 = (rows[0] ?? []).map(c => String(c ?? ''))
   const dateIdx0 = findColIndex(headerRow0, OPEX_DATE_HEADERS)
   const amtIdx0 = findColIndex(headerRow0, OPEX_AMOUNT_HEADERS)
@@ -140,7 +138,6 @@ export async function importOpexXLSX(file: File): Promise<ImportResult> {
     const amount = row[amtIdx]
     const rawName = nameIdx >= 0 ? row[nameIdx] : null
 
-    // Date can be Excel serial (number) or a string like "2024-03" or "March 2024"
     let month: string
     if (typeof rawDate === 'number') {
       month = excelSerialToYearMonth(rawDate)
@@ -166,7 +163,6 @@ export async function importOpexXLSX(file: File): Promise<ImportResult> {
     return { added: 0, total: 0, skipped, errors: [] }
   }
 
-  // Fetch existing to avoid duplicates (same name + month + amount)
   const existing = await db.opexEntries.toArray()
   const existingSet = new Set(existing.map(e => `${e.name}|${e.month}|${e.amount}`))
 

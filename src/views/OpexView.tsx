@@ -7,7 +7,6 @@ import type { OpexEntry, OpexCategory } from '../types/models'
 import { formatCurrency } from '../utils/format'
 import { useToastStore } from '../store/toastStore'
 
-// ─── Category badge colours ───────────────────────────────────────────────────
 
 const CATEGORY_STYLES: Record<string, string> = {
   'Store Equipment':   'bg-blue-500/15 text-blue-400 border border-blue-500/25',
@@ -28,7 +27,6 @@ function CategoryBadge({ category }: { category: string }) {
   )
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
 
 const EMPTY_FORM = (): Omit<OpexEntry, 'id'> => ({
   name: '',
@@ -78,7 +76,6 @@ function EntryModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Name */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">Expense Name</label>
             <input
@@ -91,7 +88,6 @@ function EntryModal({
             />
           </div>
 
-          {/* Category + Month row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1.5">Category</label>
@@ -115,7 +111,6 @@ function EntryModal({
             </div>
           </div>
 
-          {/* Amount */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">Amount ($)</label>
             <div className="relative">
@@ -133,7 +128,6 @@ function EntryModal({
             </div>
           </div>
 
-          {/* Notes */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">Notes <span className="text-slate-200">(optional)</span></label>
             <input
@@ -167,7 +161,6 @@ function EntryModal({
   )
 }
 
-// ─── Main view ────────────────────────────────────────────────────────────────
 
 export default function OpexView() {
   const { show } = useToastStore()
@@ -177,7 +170,6 @@ export default function OpexView() {
 
   const allEntries = useLiveQuery(() => db.opexEntries.orderBy('month').reverse().toArray(), []) ?? []
 
-  // Distinct months for filter dropdown
   const availableMonths = useMemo(() => {
     const set = new Set(allEntries.map(e => e.month))
     return Array.from(set).sort().reverse()
@@ -188,7 +180,6 @@ export default function OpexView() {
     return allEntries.filter(e => e.month === filterMonth)
   }, [allEntries, filterMonth])
 
-  // Summary stats
   const totalOpex = filtered.reduce((s, e) => s + e.amount, 0)
   const byCategory = useMemo(() => {
     const map: Record<string, number> = {}
@@ -224,7 +215,6 @@ export default function OpexView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Operating Expenses</h1>
@@ -241,7 +231,6 @@ export default function OpexView() {
         </button>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
           <p className="text-xs text-slate-200 mb-1">{filterMonth === 'all' ? 'Total OPEX' : 'OPEX This Month'}</p>
@@ -259,7 +248,6 @@ export default function OpexView() {
         ))}
       </div>
 
-      {/* Controls */}
       <div className="flex items-center gap-3">
         <label className="text-xs font-medium text-slate-200">Filter by month</label>
         <select
@@ -274,7 +262,6 @@ export default function OpexView() {
         </select>
       </div>
 
-      {/* Table */}
       {filtered.length === 0 ? (
         <div className="bg-slate-800/30 border border-slate-700/40 p-12 text-center">
           <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center mx-auto mb-3">
@@ -360,7 +347,6 @@ export default function OpexView() {
             </tbody>
           </table>
 
-          {/* Category totals footer */}
           {byCategory.length > 0 && (
             <div className="border-t border-slate-700 px-4 py-3 bg-slate-900/50">
               <div className="flex items-center gap-4 flex-wrap">
@@ -380,7 +366,6 @@ export default function OpexView() {
         </div>
       )}
 
-      {/* Modal */}
       {modalEntry !== null && (
         <EntryModal
           initial={modalEntry === 'new' ? null : modalEntry}

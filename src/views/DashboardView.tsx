@@ -20,7 +20,6 @@ import { TopProductsChart } from '../components/charts/TopProductsChart'
 import { formatCurrency, formatNumber } from '../utils/format'
 import type { DateRange } from '../db/useTransactions'
 
-/** Shift a date range back by its own duration to get the preceding period. */
 function previousPeriod(range: DateRange): DateRange {
   const { start, end } = range
   if (!start || !end) return { start: null, end: null }
@@ -66,8 +65,6 @@ export default function DashboardView() {
   const costData = useProductCostData() ?? []
   const refunds = useRefunds()
 
-  // Total refunds (Refunds API, cents) within the active date range. When no range
-  // is set, count all stored refunds so the figure matches "all-time" revenue.
   const totalRefunds = useMemo(() => {
     const inRange = refunds.filter(r => {
       const ms = r.createdAt.getTime()
@@ -102,8 +99,7 @@ export default function DashboardView() {
       .filter(t => t.date >= monthStart && t.date <= monthEnd)
       .reduce((s, t) => s + t.netSales, 0)
 
-    // Days elapsed / total — for pace projection
-    const dayOfWeek = ((getDay(now) + 6) % 7) + 1  // Mon=1..Sun=7
+    const dayOfWeek = ((getDay(now) + 6) % 7) + 1
     const dayOfMonth = now.getDate()
     const daysInMonth = getDaysInMonth(now)
 
@@ -113,7 +109,6 @@ export default function DashboardView() {
     return { weekRevenue, monthRevenue, weekPace, monthPace }
   }, [allTransactions, weeklyGoal, monthlyGoal])
 
-  // Previous period totals (only shown when a specific date range is selected)
   const hasPrevPeriod = prevRange.start !== null
   const prevRevenue = hasPrevPeriod ? prevTransactions.reduce((s, t) => s + t.netSales, 0) : 0
   const prevTxCount = hasPrevPeriod ? prevTransactions.length : 0
@@ -222,7 +217,6 @@ export default function DashboardView() {
         )}
       </div>
 
-      {/* Goal Progress */}
       {(
         <div className="border border-slate-700/50 bg-slate-800/25 px-5 py-4 space-y-4">
           <div className="flex items-center justify-between">

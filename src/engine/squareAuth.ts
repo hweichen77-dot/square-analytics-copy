@@ -4,7 +4,6 @@ const SQUARE_OAUTH_URL = 'https://connect.squareup.com/oauth2/authorize'
 const SQUARE_TOKEN_URL = 'https://connect.squareup.com/oauth2/token'
 const SCOPES = 'MERCHANT_PROFILE_READ ORDERS_READ PAYMENTS_READ ITEMS_READ INVENTORY_READ TEAM_MEMBERS_READ CUSTOMERS_READ'
 
-// Localhost redirect — same as the Swift version, works with Square OAuth
 const LOCALHOST_REDIRECT_URI = 'http://localhost:7329/square/callback'
 
 function isCapacitorNative(): boolean {
@@ -36,18 +35,10 @@ export function getRedirectURI(): string {
   return `${base}/square/callback`
 }
 
-/**
- * Tauri path: mirrors Swift SquareAuth.connect() exactly.
- * 1. Invoke the Rust start_oauth_listener command (binds port 7329, waits for callback)
- * 2. Open Square OAuth URL in the system browser
- * 3. Await the code returned by the Rust listener
- * 4. Exchange code for token
- */
 async function startOAuthFlowTauri(appID: string): Promise<void> {
   const { invoke } = await import('@tauri-apps/api/core')
   const { openUrl } = await import('@tauri-apps/plugin-opener').catch(() => ({ openUrl: null }))
 
-  // Step 1: bind a port (tries 7329–7339, returns the one it got)
   const port = await invoke<number>('prepare_oauth_listener')
   const redirectUri = `http://localhost:${port}/square/callback`
 
@@ -61,26 +52,19 @@ async function startOAuthFlowTauri(appID: string): Promise<void> {
   })
   const url = `${SQUARE_OAUTH_URL}?${params}`
 
-  // Step 2: start waiting for the callback; pass expected state so Rust can validate CSRF
   const codePromise = invoke<string>('wait_for_oauth_code', { expectedState: state })
 
-  // Open browser
   if (openUrl) {
     await openUrl(url).catch(() => { window.open(url, '_blank') })
   } else {
     window.open(url, '_blank')
   }
 
-  // Step 3: wait for Rust to receive the callback (Rust validates state, returns code)
   const code = await codePromise
 
-  // Step 4: exchange code for token
   await exchangeCode(code, appID, redirectUri)
 }
 
-/**
- * Web / Capacitor path: standard PKCE flow with browser redirect.
- */
 async function startOAuthFlowWeb(appID: string): Promise<void> {
   const { verifier, challenge } = await generatePKCE()
   const state = crypto.randomUUID()
@@ -114,9 +98,6 @@ export async function startOAuthFlow(appID: string): Promise<void> {
   return startOAuthFlowWeb(appID)
 }
 
-/** Called by the Tauri path after receiving the code from the Rust listener.
- *  Uses a Rust command to make the token request — bypasses CORS since Square's
- *  token endpoint is server-to-server only and blocks browser fetch calls. */
 async function exchangeCode(code: string, appID: string, redirectUri: string): Promise<void> {
   const { appSecret } = useAuthStore.getState()
   const { invoke } = await import('@tauri-apps/api/core')
@@ -149,7 +130,6 @@ async function exchangeCode(code: string, appID: string, redirectUri: string): P
   })
 }
 
-/** Called by SquareCallbackView on web/Capacitor after the redirect. */
 export async function exchangeCodeForToken(code: string): Promise<void> {
   const verifier = sessionStorage.getItem('square_pkce_verifier') ?? ''
   const { appID, appSecret } = useAuthStore.getState()
@@ -194,7 +174,6 @@ export async function refreshAccessToken(): Promise<void> {
   let data: { access_token?: string; refresh_token?: string; expires_at?: string; error?: string; error_description?: string }
 
   if (isTauri()) {
-    // Token endpoint doesn't support CORS — must go through Rust
     const { invoke } = await import('@tauri-apps/api/core')
     data = await invoke('refresh_square_token', {
       appId: appID,

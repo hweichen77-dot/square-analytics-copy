@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom'
 import { useTransactionCount } from '../../db/useTransactions'
 import { useRestockAlertCount } from '../../hooks/useRestockAlertCount'
 
-// Inline SVG icon components — no external dependencies
 function Icon({ path, path2 }: { path: string; path2?: string }) {
   return (
     <svg
@@ -144,7 +143,6 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
       'lg:static lg:translate-x-0',
       open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
     ].join(' ')}>
-      {/* Header */}
       <div className="px-4 pt-5 pb-4 border-b border-slate-800 flex items-start justify-between">
         <div>
           <h1 className="font-display text-[14px] font-700 text-slate-100 leading-tight tracking-tight">
@@ -163,7 +161,6 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
         )}
       </div>
 
-      {/* Main nav */}
       <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {NAV_SECTIONS.map((section, si) => (
           <div key={si} role={section.heading ? 'group' : undefined} aria-label={section.heading} className={si > 0 ? 'mt-1' : ''}>
@@ -184,7 +181,6 @@ export default function Sidebar({ open, onClose }: { open?: boolean; onClose?: (
         ))}
       </nav>
 
-      {/* Bottom items */}
       <div className="border-t border-slate-800 py-2 space-y-0.5">
         {BOTTOM_ITEMS.map(item => (
           <NavItemFull key={item.path} item={item} onClose={onClose} />

@@ -14,14 +14,12 @@ import type {
 } from './reportEngine'
 import { REPORT_META } from './reportEngine'
 
-// ─── Layout constants ─────────────────────────────────────────────────────────
 
 const MARGIN = 14
 const PAGE_W = 210
 const PAGE_H = 297
-const CW = PAGE_W - MARGIN * 2 // content width: 182mm
+const CW = PAGE_W - MARGIN * 2
 
-// ─── Brand colours (indigo palette) ──────────────────────────────────────────
 
 const C = {
   indigo600: [79, 70, 229] as [number, number, number],
@@ -40,7 +38,6 @@ function fill(doc: jsPDF, c: [number, number, number]) { doc.setFillColor(c[0], 
 function draw(doc: jsPDF, c: [number, number, number]) { doc.setDrawColor(c[0], c[1], c[2]) }
 function text(doc: jsPDF, c: [number, number, number]) { doc.setTextColor(c[0], c[1], c[2]) }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function shortVal(v: number, isCurrency = true): string {
   const abs = Math.abs(v)
@@ -54,30 +51,24 @@ function makeDoc() {
   return new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
 }
 
-// ─── Page structure ───────────────────────────────────────────────────────────
 
-/** Draws the page header and returns the Y position after it. */
 function drawHeader(doc: jsPDF, reportLabel: string, dateRange: string): number {
   const y = MARGIN
 
-  // Store name
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(15)
   text(doc, C.gray900)
   doc.text("Walley's Analytics", MARGIN, y + 6)
 
-  // Report type — right aligned in brand colour
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(9)
   text(doc, C.indigo600)
   doc.text(reportLabel, PAGE_W - MARGIN, y + 6, { align: 'right' })
 
-  // Date range
   doc.setFontSize(7.5)
   text(doc, C.gray500)
   doc.text(dateRange, MARGIN, y + 11)
 
-  // Divider
   draw(doc, C.indigo200)
   doc.setLineWidth(0.4)
   doc.line(MARGIN, y + 14, PAGE_W - MARGIN, y + 14)
@@ -85,7 +76,6 @@ function drawHeader(doc: jsPDF, reportLabel: string, dateRange: string): number 
   return y + 19
 }
 
-/** Stamps footer (generated date + page N of M) on every page. */
 function addFooters(doc: jsPDF, generatedAt: string): void {
   const total = doc.getNumberOfPages()
   for (let i = 1; i <= total; i++) {
@@ -102,9 +92,7 @@ function addFooters(doc: jsPDF, generatedAt: string): void {
   }
 }
 
-// ─── Shared drawing blocks ────────────────────────────────────────────────────
 
-/** Draws a row of KPI cards and returns Y after them. */
 function drawKPICards(
   doc: jsPDF,
   cards: { label: string; value: string; sub?: string }[],
@@ -143,7 +131,6 @@ function drawKPICards(
   return y + cardH + 5
 }
 
-/** Small uppercase section label + underline. Returns Y after it. */
 function drawSectionHeader(doc: jsPDF, label: string, y: number): number {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(7.5)
@@ -156,10 +143,6 @@ function drawSectionHeader(doc: jsPDF, label: string, y: number): number {
   return y + 6
 }
 
-/**
- * Vertical bar chart drawn with jsPDF primitives.
- * Caps at 30 bars. Returns Y after the chart area.
- */
 function drawBarChart(
   doc: jsPDF,
   data: { label: string; value: number }[],
@@ -173,11 +156,9 @@ function drawBarChart(
   const gap = capped.length > 20 ? 0.4 : 1.5
   const barW = (CW - gap * (capped.length - 1)) / capped.length
 
-  // Chart background
   fill(doc, C.gray50)
   doc.rect(MARGIN, y, CW, chartH, 'F')
 
-  // Horizontal grid lines (4 levels)
   for (let lvl = 1; lvl <= 4; lvl++) {
     const lineY = y + barAreaH - (barAreaH * lvl) / 4
     draw(doc, C.gray200)
@@ -188,7 +169,6 @@ function drawBarChart(
     doc.text(shortVal(max * lvl / 4), MARGIN + 1, lineY - 0.5)
   }
 
-  // Bars
   capped.forEach((d, i) => {
     const bh = (d.value / max) * barAreaH
     const bx = MARGIN + i * (barW + gap)
@@ -205,7 +185,6 @@ function drawBarChart(
     }
   })
 
-  // Baseline
   draw(doc, C.gray500)
   doc.setLineWidth(0.3)
   doc.line(MARGIN, y + barAreaH, MARGIN + CW, y + barAreaH)
@@ -213,10 +192,6 @@ function drawBarChart(
   return y + chartH + 5
 }
 
-/**
- * Horizontal bar chart (label | bar | value).
- * Good for payment methods and day-of-week breakdowns.
- */
 function drawHBarChart(
   doc: jsPDF,
   data: { label: string; value: number; sub?: string }[],
@@ -255,7 +230,6 @@ function drawHBarChart(
   return y + rows.length * (rowH + 1) + 4
 }
 
-/** Common autoTable style presets */
 const TABLE_STYLES = {
   headStyles: { fillColor: [79, 70, 229] as [number, number, number], textColor: [255, 255, 255] as [number, number, number], fontSize: 8, fontStyle: 'bold' as const },
   bodyStyles: { fontSize: 7.5, textColor: [55, 65, 81] as [number, number, number] },
@@ -263,7 +237,6 @@ const TABLE_STYLES = {
   margin: { left: MARGIN, right: MARGIN },
 }
 
-// ─── Per-report PDF builders ──────────────────────────────────────────────────
 
 function buildRevenuePDF(report: RevenueReport, dateRange: string): jsPDF {
   const doc = makeDoc()
@@ -400,7 +373,6 @@ function buildCustomerBehaviorPDF(report: CustomerBehaviorReport, dateRange: str
     label: d.label, value: d.count, sub: `${formatNumber(d.count)} txns`,
   })), y, 7)
 
-  // Payment detail table — add new page if we're running low
   if (y > 215) { doc.addPage(); y = drawHeader(doc, REPORT_META['customer-behavior'].label, dateRange) }
   y += 3
   y = drawSectionHeader(doc, 'Payment Method Detail', y)
@@ -471,7 +443,6 @@ function buildSeasonalPDF(report: SeasonalReport, dateRange: string): jsPDF {
     { label: 'Monthly Avg',   value: formatCurrency(avgMonthly) },
   ], y)
 
-  // Season overview table
   y = drawSectionHeader(doc, 'Season Overview', y)
   autoTable(doc, {
     ...TABLE_STYLES,
@@ -496,7 +467,6 @@ function buildSeasonalPDF(report: SeasonalReport, dateRange: string): jsPDF {
   })
   y = (doc as any).lastAutoTable.finalY + 6
 
-  // Top products per season
   for (const season of report.seasons) {
     if (season.topProducts.length === 0) continue
     if (y > 230) { doc.addPage(); y = drawHeader(doc, REPORT_META.seasonal.label, dateRange) }
@@ -518,7 +488,6 @@ function buildSeasonalPDF(report: SeasonalReport, dateRange: string): jsPDF {
     y = (doc as any).lastAutoTable.finalY + 5
   }
 
-  // Monthly bar chart — new page
   doc.addPage()
   y = drawHeader(doc, REPORT_META.seasonal.label, dateRange)
   y = drawSectionHeader(doc, 'Monthly Revenue', y)
@@ -623,7 +592,6 @@ function buildCashPDF(report: CashReport, dateRange: string): jsPDF {
     label: p.method, value: p.revenue, sub: `${formatCurrency(p.revenue)} · ${formatNumber(p.count)} txns`,
   })), y)
 
-  // Weekly totals table
   if (y > 180) { doc.addPage(); y = drawHeader(doc, REPORT_META.cash.label, dateRange) }
   y += 3
   y = drawSectionHeader(doc, 'Weekly Cash Totals', y)
@@ -674,7 +642,6 @@ function buildCashPDF(report: CashReport, dateRange: string): jsPDF {
   return doc
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
 
 export function exportToPDF(report: AnyReport, dateRange: string): void {
   let doc: jsPDF
@@ -689,7 +656,6 @@ export function exportToPDF(report: AnyReport, dateRange: string): void {
   doc.save(`walleys-${report.type}-${format(new Date(), 'yyyy-MM-dd')}.pdf`)
 }
 
-// ─── Accountant Report ────────────────────────────────────────────────────────
 
 export interface AccountantPaymentRow {
   method: string
@@ -728,7 +694,6 @@ export function exportAccountantPDF(data: AccountantReportData): void {
   const now = format(new Date(), 'MMM d, yyyy h:mm a')
   let y = drawHeader(doc, 'Accountant Summary', data.dateRange)
 
-  // ── Section 1: Revenue ──────────────────────────────────────────────────────
   y = drawSectionHeader(doc, '1. Revenue', y)
 
   const hasCOGS = data.totalCOGS !== null
@@ -748,7 +713,6 @@ export function exportAccountantPDF(data: AccountantReportData): void {
 
   y = drawKPICards(doc, kpiCards, y)
 
-  // Revenue summary table
   const revRows: [string, string][] = [
     ['Gross Revenue',         formatCurrency(data.totalRevenue)],
     ['Refunds / Adjustments', `(${formatCurrency(Math.abs(data.refundRevenue))})`],
@@ -775,7 +739,6 @@ export function exportAccountantPDF(data: AccountantReportData): void {
   })
   y = (doc as any).lastAutoTable.finalY + 6
 
-  // ── Section 2: Payment breakdown ────────────────────────────────────────────
   y = drawSectionHeader(doc, '2. Payment Method Breakdown', y)
   autoTable(doc, {
     ...TABLE_STYLES,
@@ -798,7 +761,6 @@ export function exportAccountantPDF(data: AccountantReportData): void {
   })
   y = (doc as any).lastAutoTable.finalY + 6
 
-  // ── Section 3: Top products ─────────────────────────────────────────────────
   if (y > 200) { doc.addPage(); y = drawHeader(doc, 'Accountant Summary', data.dateRange) }
   y = drawSectionHeader(doc, '3. Top Products by Revenue', y)
 
@@ -921,7 +883,6 @@ export function exportToCSV(report: AnyReport): void {
     filename = `walleys-monthly-detail-${format(new Date(), 'yyyy-MM-dd')}.csv`
 
   } else {
-    // cash
     rows = [
       ['Week', 'Cash Revenue', 'Cash Transactions', 'Total Revenue', 'Cash %'],
       ...report.byWeek.map(w => [

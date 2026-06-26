@@ -20,7 +20,6 @@ function toDateInput(d: Date): string {
 }
 
 function fromDateInput(s: string): Date {
-  // Parse as local date (avoid UTC offset shift)
   const [y, m, d] = s.split('-').map(Number)
   return new Date(y, m - 1, d)
 }
@@ -97,7 +96,6 @@ export default function AccountantReportView() {
     const totalTransactions = transactions.filter(t => t.netSales > 0).length
     const avgTransaction = totalTransactions > 0 ? totalRevenue / totalTransactions : 0
 
-    // Payment breakdown (positive transactions only)
     const paymentMap = new Map<string, { revenue: number; count: number }>()
     for (const tx of transactions.filter(t => t.netSales >= 0)) {
       const m = tx.paymentMethod || 'Unknown'
@@ -113,7 +111,6 @@ export default function AccountantReportView() {
       }))
       .sort((a, b) => b.revenue - a.revenue)
 
-    // Top 20 products with cost data if available
     const hasCostData = costMap.size > 0
     let totalCOGS: number | null = hasCostData ? 0 : null
 
@@ -160,7 +157,6 @@ export default function AccountantReportView() {
 
   const hasCOGS = report.totalCOGS !== null
 
-  // Extra analytics not in the base report
   const weeklyRevenue = useMemo(() => {
     if (transactions.length === 0) return []
     const weeks = eachWeekOfInterval({ start: dates.start, end: dates.end }, { weekStartsOn: 1 })
@@ -249,7 +245,6 @@ export default function AccountantReportView() {
         )}
       </div>
 
-      {/* Period selector */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-5 space-y-4">
         <h2 className="font-semibold text-slate-200">Report Period</h2>
         <div className="flex flex-wrap gap-2">
@@ -296,16 +291,13 @@ export default function AccountantReportView() {
         </div>
       </div>
 
-      {/* No data state */}
       {transactions.length === 0 ? (
         <div className="bg-slate-800/30 border border-slate-700/40 p-8 text-center text-sm text-slate-200">
           No transactions in this period.
         </div>
       ) : (
         <>
-          {/* Two-column layout: revenue + payment breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Revenue summary */}
             <div className="bg-slate-800/30 border border-slate-700/40 p-5">
               <h2 className="font-semibold text-slate-200 mb-3">Revenue Summary</h2>
               <MetricRow label="Gross Revenue" value={formatCurrency(report.totalRevenue)} />
@@ -338,7 +330,6 @@ export default function AccountantReportView() {
               )}
             </div>
 
-            {/* Payment breakdown — list + pie chart */}
             <div className="bg-slate-800/30 border border-slate-700/40 p-5">
               <h2 className="font-semibold text-slate-200 mb-3">Payment Breakdown</h2>
               {report.paymentBreakdown.length > 0 && (
@@ -385,7 +376,6 @@ export default function AccountantReportView() {
             </div>
           </div>
 
-          {/* P&L Summary (if OPEX entered) */}
           {hasCOGS && (opexTotal > 0) && (
             <div className="bg-slate-800/30 border border-slate-700/40 p-5">
               <h2 className="font-semibold text-slate-200 mb-3">Profit & Loss Summary</h2>
@@ -402,7 +392,6 @@ export default function AccountantReportView() {
             </div>
           )}
 
-          {/* Weekly revenue trend */}
           {weeklyRevenue.length > 1 && (
             <div className="bg-slate-800/30 border border-slate-700/40 p-5">
               <h2 className="font-semibold text-slate-200 mb-4">Weekly Revenue Trend</h2>
@@ -423,7 +412,6 @@ export default function AccountantReportView() {
             </div>
           )}
 
-          {/* Revenue by day of week */}
           <div className="bg-slate-800/30 border border-slate-700/40 p-5">
             <h2 className="font-semibold text-slate-200 mb-4">Revenue by Day of Week</h2>
             <div className="grid grid-cols-7 gap-2">
@@ -437,7 +425,6 @@ export default function AccountantReportView() {
             </div>
           </div>
 
-          {/* Category breakdown */}
           {categoryBreakdown.length > 0 && (
             <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-700/50">
@@ -470,7 +457,6 @@ export default function AccountantReportView() {
             </div>
           )}
 
-          {/* All products table with search */}
           {allProducts.length > 0 && (
             <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between gap-4">

@@ -54,7 +54,6 @@ export default function SquareSyncView() {
     }
   }
 
-  // Keep connState in sync with the auth store (e.g. after OAuth callback sets the token)
   useEffect(() => {
     if (store.accessToken) {
       setConnState('connected')
@@ -63,8 +62,6 @@ export default function SquareSyncView() {
     }
   }, [store.accessToken]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-load locations on mount whenever the user is already connected so the
-  // dropdown shows correctly after navigating away and back.
   useEffect(() => {
     if (!store.accessToken) return
     fetchLocations(store.accessToken)
@@ -183,7 +180,6 @@ export default function SquareSyncView() {
         </div>
       )}
 
-      {/* ── Status bar ── */}
       <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${statusBar.bg}`}>
         {connState === 'connecting' ? (
           <div className="w-3 h-3 shrink-0 border-2 border-amber-400 border-t-amber-700 rounded-full animate-spin" />
@@ -212,7 +208,6 @@ export default function SquareSyncView() {
         )}
       </div>
 
-      {/* ── Redirect URI notice ── */}
       {connState !== 'connected' && (
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 text-sm text-blue-300">
           <p className="font-semibold mb-1">Required: add this Redirect URI in Square Developer Dashboard</p>
@@ -401,7 +396,6 @@ export default function SquareSyncView() {
         </div>
       )}
 
-      {/* Data Source Diagnostics */}
       {sourceCounts && (sourceCounts.api > 0 || sourceCounts.csv > 0) && (
         <div className="bg-slate-800/30 border border-slate-700/40 p-5 space-y-3">
           <h2 className="font-semibold text-slate-200">Data Source Diagnostics</h2>

@@ -29,12 +29,10 @@ import { exportToPDF, exportToCSV } from '../engine/pdfExport'
 import { exportTransactionsToCSV } from '../engine/transactionExport'
 import { useNavigate } from 'react-router-dom'
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
 
 const PIE_COLORS = ['#14B8A6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#f97316', '#84cc16']
 const REPORT_TYPES: ReportType[] = ['revenue', 'top-products', 'customer-behavior', 'transaction-log', 'seasonal', 'monthly-detail', 'cash']
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
 
 function ExportBar({ onPDF, onCSV, loading }: { onPDF: () => void; onCSV: () => void; loading: boolean }) {
   return (
@@ -59,7 +57,6 @@ function ExportBar({ onPDF, onCSV, loading }: { onPDF: () => void; onCSV: () => 
   )
 }
 
-// ─── Report renderers ─────────────────────────────────────────────────────────
 
 function RevenueReportView({ report }: { report: Extract<AnyReport, { type: 'revenue' }> }) {
   const chartData = report.timeSeries.map(d => ({
@@ -225,7 +222,6 @@ function CustomerBehaviorReportView({ report }: { report: Extract<AnyReport, { t
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Payment Methods pie */}
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
           <h3 className="font-semibold text-slate-200 mb-4">Payment Methods</h3>
           <div className="flex gap-4 items-center">
@@ -249,7 +245,6 @@ function CustomerBehaviorReportView({ report }: { report: Extract<AnyReport, { t
           </div>
         </div>
 
-        {/* Day of week */}
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
           <h3 className="font-semibold text-slate-200 mb-4">Busiest Days</h3>
           <ResponsiveContainer width="100%" height={170}>
@@ -264,7 +259,6 @@ function CustomerBehaviorReportView({ report }: { report: Extract<AnyReport, { t
         </div>
       </div>
 
-      {/* Peak hours */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-4">
         <h3 className="font-semibold text-slate-200 mb-4">Transactions by Hour</h3>
         <ResponsiveContainer width="100%" height={180}>
@@ -278,7 +272,6 @@ function CustomerBehaviorReportView({ report }: { report: Extract<AnyReport, { t
         </ResponsiveContainer>
       </div>
 
-      {/* Payment method table */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50">
           <h3 className="font-semibold text-slate-200">Payment Method Detail</h3>
@@ -341,7 +334,6 @@ function TransactionLogReportView({ report }: { report: Extract<AnyReport, { typ
         <StatCard label="Avg Transaction" value={formatCurrency(report.count > 0 ? report.totalRevenue / report.count : 0)} />
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <input
           type="text" placeholder="Search items or staff…" value={search}
@@ -420,7 +412,6 @@ function SeasonalReportView({ report }: { report: Extract<AnyReport, { type: 'se
         <StatCard label="Monthly Avg"   value={formatCurrency(avgMonthly)} />
       </div>
 
-      {/* Season cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {report.seasons.map(s => {
           const isActive = activeSeason === s.name
@@ -443,7 +434,6 @@ function SeasonalReportView({ report }: { report: Extract<AnyReport, { type: 'se
         })}
       </div>
 
-      {/* Expanded season detail */}
       {selectedSeason && (
         <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-2">
@@ -452,7 +442,6 @@ function SeasonalReportView({ report }: { report: Extract<AnyReport, { type: 'se
             <span className="text-xs text-slate-200 ml-auto">{selectedSeason.months.join(', ')}</span>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-slate-700/50">
-            {/* Top products table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-slate-900 border-b border-slate-700/50">
@@ -475,7 +464,6 @@ function SeasonalReportView({ report }: { report: Extract<AnyReport, { type: 'se
                 </tbody>
               </table>
             </div>
-            {/* Month breakdown for this season */}
             <div className="p-4">
               <p className="text-xs font-semibold text-slate-200 uppercase mb-3">Monthly Breakdown</p>
               <ResponsiveContainer width="100%" height={160}>
@@ -492,7 +480,6 @@ function SeasonalReportView({ report }: { report: Extract<AnyReport, { type: 'se
         </div>
       )}
 
-      {/* Monthly bar chart */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-4">
         <h3 className="font-semibold text-slate-200 mb-4">Monthly Revenue</h3>
         <ResponsiveContainer width="100%" height={240}>
@@ -557,13 +544,11 @@ function MonthlyDetailReportView({
   const hasDetailed = rows.some(r => r.hasDetailedFinancials)
   const hasCogs     = rows.some(r => r.cogs !== null)
 
-  // Collect all OPEX categories that appear across any month
   const allOpexCats = Array.from(
     new Set(rows.flatMap(r => Object.keys(r.opexByCategory)))
   )
   const hasOpex = allOpexCats.length > 0 || rows.some(r => r.fees > 0)
 
-  // Totals across all months
   const totGrossSales    = rows.reduce((s, r) => s + r.grossSales, 0)
   const totReturns       = rows.reduce((s, r) => s + r.returns, 0)
   const totDiscounts     = rows.reduce((s, r) => s + r.discounts, 0)
@@ -590,15 +575,12 @@ function MonthlyDetailReportView({
   const totFinalNet      = (totOverhead !== null && totNetProfit !== null)
     ? totNetProfit - totOverhead : null
 
-  // Row rendering helpers
   const $ = formatCurrency
 
-  // Cell classes
   const labelCell = 'sticky left-0 z-10 bg-slate-800 px-3 py-2 text-xs text-slate-200 whitespace-nowrap border-r border-slate-700/60 min-w-[180px]'
   const dataCell  = 'px-3 py-2 text-right font-mono text-xs text-slate-100 whitespace-nowrap min-w-[90px]'
   const totalCell = 'px-3 py-2 text-right font-mono text-xs font-semibold text-slate-200 whitespace-nowrap min-w-[90px] border-l border-slate-700'
 
-  // Section header row
   const SectionRow = ({ label }: { label: string }) => (
     <tr className="bg-slate-900/70">
       <td className="sticky left-0 z-10 bg-slate-900/70 px-3 py-1.5 border-r border-slate-700/60">
@@ -609,7 +591,6 @@ function MonthlyDetailReportView({
     </tr>
   )
 
-  // Detail row
   const DataRow = ({
     label,
     vals,
@@ -632,7 +613,6 @@ function MonthlyDetailReportView({
     </tr>
   )
 
-  // Subtotal / highlighted row
   const SubtotalRow = ({
     label,
     vals,
@@ -678,7 +658,6 @@ function MonthlyDetailReportView({
 
   return (
     <div className="space-y-6">
-      {/* Summary stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Net Sales"    value={$(report.totalRevenue)} />
         <StatCard label="Total Transactions" value={formatNumber(report.totalTransactions)} />
@@ -686,7 +665,6 @@ function MonthlyDetailReportView({
         <StatCard label="Best Month"         value={report.bestMonth ? $(report.bestMonth.revenue) : '—'} sub={report.bestMonth?.label} />
       </div>
 
-      {/* Revenue chart */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-4">
         <h3 className="font-semibold text-slate-200 mb-4">Monthly Net Sales</h3>
         <ResponsiveContainer width="100%" height={200}>
@@ -700,7 +678,6 @@ function MonthlyDetailReportView({
         </ResponsiveContainer>
       </div>
 
-      {/* ── Month-over-Month Growth ── */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700">
           <h3 className="font-semibold text-slate-200">Month-over-Month Growth</h3>
@@ -739,7 +716,6 @@ function MonthlyDetailReportView({
         </div>
       </div>
 
-      {/* ── Top Products by Month ── */}
       {rows.some(r => r.topProducts && r.topProducts.length > 0) && (
         <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-700">
@@ -779,7 +755,6 @@ function MonthlyDetailReportView({
         </div>
       )}
 
-      {/* ── Income Statement (transposed) ── */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700">
           <h3 className="font-semibold text-slate-200">Income Statement</h3>
@@ -788,7 +763,6 @@ function MonthlyDetailReportView({
 
         <div className="overflow-x-auto">
           <table className="border-separate border-spacing-0 text-sm">
-            {/* ── Column headers ── */}
             <thead>
               <tr className="bg-slate-900 border-b border-slate-700">
                 <th className="sticky left-0 z-20 bg-slate-900 px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-slate-200 border-r border-slate-700/60 min-w-[180px]">
@@ -806,7 +780,6 @@ function MonthlyDetailReportView({
             </thead>
 
             <tbody>
-              {/* ── INCOME SECTION ── */}
               <SectionRow label="Income" />
 
               {hasDetailed ? (
@@ -848,7 +821,6 @@ function MonthlyDetailReportView({
                 color="teal"
               />
 
-              {/* ── PAYMENTS SECTION ── */}
               {hasDetailed && (
                 <>
                   <SectionRow label="Payments" />
@@ -874,7 +846,6 @@ function MonthlyDetailReportView({
                 </>
               )}
 
-              {/* ── COGS & GROSS MARGIN ── */}
               {hasCogs && (
                 <>
                   <SectionRow label="Cost of Goods" />
@@ -896,7 +867,6 @@ function MonthlyDetailReportView({
                 </>
               )}
 
-              {/* ── OPEX SECTION ── */}
               {hasOpex && (
                 <>
                   <SectionRow label="Operating Expenses" />
@@ -919,7 +889,6 @@ function MonthlyDetailReportView({
                       dim
                     />
                   )}
-                  {/* OPEX total row */}
                   <tr className="border-t border-slate-700/40 bg-slate-900/30">
                     <td className="sticky left-0 z-10 bg-slate-900/30 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-200 border-r border-slate-700/60 min-w-[180px]">
                       Total OPEX
@@ -936,7 +905,6 @@ function MonthlyDetailReportView({
                 </>
               )}
 
-              {/* ── NET PROFIT ── */}
               {totNetProfit !== null && (
                 <>
                   <SubtotalRow
@@ -948,7 +916,6 @@ function MonthlyDetailReportView({
                     color="emerald"
                   />
 
-                  {/* ── OVERHEAD (optional) ── */}
                   {overheadEnabled && totOverhead !== null && (
                     <>
                       <DataRow
@@ -968,7 +935,6 @@ function MonthlyDetailReportView({
                 </>
               )}
 
-              {/* ── TRANSACTIONS STRIP ── */}
               <tr className="border-t-2 border-slate-700 bg-slate-900/50">
                 <td className="sticky left-0 z-10 bg-slate-900/50 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-200 border-r border-slate-700/60 min-w-[180px]">
                   Transactions
@@ -1058,7 +1024,6 @@ function CashReportView({ report }: { report: Extract<AnyReport, { type: 'cash' 
         </div>
       </div>
 
-      {/* Weekly cash totals */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50">
           <h3 className="font-semibold text-slate-200">Weekly Cash Totals</h3>
@@ -1091,7 +1056,6 @@ function CashReportView({ report }: { report: Extract<AnyReport, { type: 'cash' 
         </div>
       </div>
 
-      {/* Payment breakdown */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50">
           <h3 className="font-semibold text-slate-200">Payment Method Breakdown</h3>
@@ -1122,7 +1086,6 @@ function CashReportView({ report }: { report: Extract<AnyReport, { type: 'cash' 
         </table>
       </div>
 
-      {/* Cash transaction log */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
           <h3 className="font-semibold text-slate-200">Cash Transactions</h3>
@@ -1164,7 +1127,6 @@ function CashReportView({ report }: { report: Extract<AnyReport, { type: 'cash' 
   )
 }
 
-// ─── Main view ────────────────────────────────────────────────────────────────
 
 export default function ReportsView() {
   const navigate = useNavigate()
@@ -1205,7 +1167,6 @@ export default function ReportsView() {
     if (filtered.length === 0) return
     setGenerating(true)
     setReport(null)
-    // setTimeout lets React flush the loading state before the (sync) compute
     setTimeout(() => {
       try {
         let result: AnyReport
@@ -1237,7 +1198,6 @@ export default function ReportsView() {
     <div className="space-y-6">
       <h1 className="text-xl font-bold text-slate-100">Reports</h1>
 
-      {/* ── Report type picker ── */}
       <div className="grid grid-cols-4 gap-3">
         {REPORT_TYPES.map(type => {
           const meta = REPORT_META[type]
@@ -1264,9 +1224,7 @@ export default function ReportsView() {
         })}
       </div>
 
-      {/* ── Config bar ── */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-4 flex flex-wrap items-end gap-4">
-        {/* Date range */}
         <div className="flex items-center gap-2">
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1">From</label>
@@ -1281,7 +1239,6 @@ export default function ReportsView() {
           </div>
         </div>
 
-        {/* Granularity (revenue only) */}
         {selectedType === 'revenue' && (
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1">Granularity</label>
@@ -1298,7 +1255,6 @@ export default function ReportsView() {
           </div>
         )}
 
-        {/* Top N (top-products only) */}
         {selectedType === 'top-products' && (
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1">Show top</label>
@@ -1309,7 +1265,6 @@ export default function ReportsView() {
           </div>
         )}
 
-        {/* Overhead toggle (monthly-detail only) */}
         {selectedType === 'monthly-detail' && (
           <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/8 border border-amber-500/20 rounded-lg">
             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1360,7 +1315,6 @@ export default function ReportsView() {
         </div>
       </div>
 
-      {/* ── Loading ── */}
       {generating && (
         <div className="flex items-center justify-center py-20 text-slate-200">
           <div className="flex items-center gap-3">
@@ -1370,10 +1324,8 @@ export default function ReportsView() {
         </div>
       )}
 
-      {/* ── Report output ── */}
       {!generating && report && (
         <>
-          {/* Export bar */}
           <div className="flex items-center justify-between bg-slate-800/30 border border-slate-700/40 px-4 py-3">
             <div>
               <p className="text-sm font-semibold text-slate-200">{REPORT_META[report.type].label}</p>
@@ -1386,7 +1338,6 @@ export default function ReportsView() {
             />
           </div>
 
-          {/* Report content */}
           {report.type === 'revenue'           && <RevenueReportView          report={report} />}
           {report.type === 'top-products'      && <TopProductsReportView      report={report} />}
           {report.type === 'customer-behavior' && <CustomerBehaviorReportView report={report} />}
@@ -1397,7 +1348,6 @@ export default function ReportsView() {
         </>
       )}
 
-      {/* ── Empty prompt (no report generated yet) ── */}
       {!generating && !report && (
         <div className="text-center py-16 text-slate-200">
           <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-3">

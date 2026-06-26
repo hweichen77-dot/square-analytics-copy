@@ -4,14 +4,11 @@ import type { SalesTransaction } from '../types/models'
 function parseDateTime(value: string): Date | null {
   if (!value) return null
 
-  // a) ISO 8601: only trust new Date() when the string contains '-' (avoids
-  //    MM/DD/YYYY being silently misinterpreted by some JS engines as ISO-like)
   if (value.includes('-')) {
     const iso = new Date(value)
     if (!isNaN(iso.getTime())) return iso
   }
 
-  // b) MM/DD/YYYY [HH:MM[:SS]] or M/D/YYYY [HH:MM[:SS]]
   const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/)
   if (match) {
     const [, m, d, y, h, min, sec] = match
@@ -22,7 +19,6 @@ function parseDateTime(value: string): Date | null {
     if (!isNaN(date.getTime())) return date
   }
 
-  // c) Last resort: try native parser for any other format (e.g. "Jan 15 2024")
   const fallback = new Date(value)
   if (!isNaN(fallback.getTime())) return fallback
 
@@ -37,8 +33,6 @@ function parseCurrency(value: string): number {
 }
 
 function generateFallbackID(row: Record<string, string>, index: number): string {
-  // Use index + a simple hash of all values to avoid collisions when multiple files
-  // have identical-looking rows at the same row index.
   const content = Object.values(row).join('\x00')
   let hash = 0
   for (let i = 0; i < content.length; i++) {
@@ -55,10 +49,6 @@ function looksLikeCashRef(value: string): boolean {
 
 const KNOWN_CARD_BRANDS = /visa|mastercard|master\s*card|amex|american express|discover|jcb|diners|unionpay|eftpos|paywave|interac/i
 
-/**
- * Build a case-insensitive column accessor for a row.
- * Square exports use inconsistent header casing — this normalises lookups.
- */
 function makeRowAccessor(row: Record<string, string>) {
   const lower: Record<string, string> = {}
   for (const key of Object.keys(row)) {
@@ -126,7 +116,6 @@ export function parseCSVContent(content: string): CSVParseResult {
   for (let i = 0; i < rows.length; i++) {
     const get = makeRowAccessor(rows[i])
 
-    // Square exports Date and Time as separate columns — combine them for accurate hour tracking
     const dateStr = (() => {
       const d = get('Date', 'Transaction Date', 'Created At', 'Sale Date')
       const t = get('Time')
@@ -135,7 +124,6 @@ export function parseCSVContent(content: string): CSVParseResult {
     })()
 
     const netSalesStr = get('Net Sales', 'Net Amount', 'Total', 'Amount', 'Sale Amount', 'Gross Sales')
-    // Square column is literally "Staff Name"
     const staff       = get('Staff Name', 'Employee', 'Staff', 'Cashier', 'Team Member',
                             'Served By', 'Sales Person', 'Salesperson', 'Associate', 'Operator', 'Seller')
     const description = get('Description', 'Item Name', 'Items', 'Line Items', 'Item', 'Product')
@@ -143,11 +131,6 @@ export function parseCSVContent(content: string): CSVParseResult {
     const customerID  = get('Customer ID', 'Customer Reference ID')
     const customerName = get('Customer Name', 'Customer')
 
-    // ── Payment method detection ────────────────────────────────────────────
-    // Square CSV has dedicated tender columns (dollar amounts):
-    //   Cash, Square Gift Card, Other Tender
-    // Card transactions have a Card Brand (Visa, MasterCard, etc.).
-    // Checking tender amounts is more reliable than heuristics on Card Brand.
     const cashAmount     = parseCurrency(get('Cash'))
     const giftCardAmount = parseCurrency(get('Square Gift Card'))
     const cardBrandVal   = get('Card Brand', 'Card Network', 'Card Type')
@@ -189,7 +172,6 @@ export function parseCSVContent(content: string): CSVParseResult {
       source: 'csv',
     }
 
-    // Parse Square financial detail columns when present
     const grossSalesRaw     = parseCurrency(get('Gross Sales'))
     const discountsRaw      = parseCurrency(get('Discounts'))
     const serviceChargesRaw = parseCurrency(get('Service Charges'))

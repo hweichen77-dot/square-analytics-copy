@@ -313,7 +313,6 @@ export default function PriceOptimizationView() {
         </div>
       )}
 
-      {/* All Products List with Search */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between gap-4">
           <div>

@@ -9,7 +9,6 @@ import {
 import type { ProductStats, DailyRevenue, MonthlyComparison, TimeGranularity } from './analyticsEngine'
 import { DAY_NAMES } from '../utils/format'
 
-// ─── Shared Gross Profit ──────────────────────────────────────────────────────
 
 export interface GrossProfitResult {
   grossProfit: number | null
@@ -17,10 +16,6 @@ export interface GrossProfitResult {
   cogs: number
 }
 
-/**
- * Canonical gross profit computation shared by Dashboard and ProfitView.
- * Returns null grossProfit/marginPct when no cost data is available.
- */
 export function computeGrossProfit(
   productStats: ProductStats[],
   costData: ProductCostData[],
@@ -84,7 +79,6 @@ export const REPORT_META: Record<ReportType, { label: string; icon: string; desc
   },
 }
 
-// ─── Revenue ──────────────────────────────────────────────────────────────────
 
 export interface RevenueReport {
   type: 'revenue'
@@ -119,7 +113,6 @@ export function buildRevenueReport(
   }
 }
 
-// ─── Top Products ─────────────────────────────────────────────────────────────
 
 export interface TopProductsReport {
   type: 'top-products'
@@ -146,7 +139,6 @@ export function buildTopProductsReport(
   }
 }
 
-// ─── Customer Behavior ────────────────────────────────────────────────────────
 
 export interface PaymentMethodStat {
   method: string
@@ -198,7 +190,6 @@ export function buildCustomerBehaviorReport(transactions: SalesTransaction[]): C
     count: hourMap.get(h) ?? 0,
   }))
 
-  // dayOfWeek: 1=Sun … 7=Sat
   const peakDays = Array.from({ length: 7 }, (_, i) => ({
     dayOfWeek: i + 1,
     label: DAY_NAMES[i],
@@ -216,7 +207,6 @@ export function buildCustomerBehaviorReport(transactions: SalesTransaction[]): C
   }
 }
 
-// ─── Transaction Log ──────────────────────────────────────────────────────────
 
 export interface TransactionLogReport {
   type: 'transaction-log'
@@ -235,19 +225,18 @@ export function buildTransactionLogReport(transactions: SalesTransaction[]): Tra
   }
 }
 
-// ─── Seasonal ─────────────────────────────────────────────────────────────────
 
 export type SeasonName = 'Spring' | 'Summer' | 'Fall' | 'Winter'
 
 export interface SeasonStats {
   name: SeasonName
   icon: string
-  months: string[]           // e.g. ['March','April','May']
+  months: string[]
   revenue: number
   transactions: number
   avgTransaction: number
-  revenueShare: number       // % of total revenue
-  topProducts: ProductStats[] // top 5 products for this season
+  revenueShare: number
+  topProducts: ProductStats[]
   monthBreakdown: { label: string; revenue: number; transactions: number }[]
 }
 
@@ -290,7 +279,6 @@ export function buildSeasonalReport(
     ? monthly.reduce((worst, m) => (m.revenue < worst.revenue ? m : worst))
     : null
 
-  // Bucket transactions by season
   const seasonTxMap = new Map<SeasonName, SalesTransaction[]>()
   for (const s of Object.keys(SEASON_CONFIG) as SeasonName[]) seasonTxMap.set(s, [])
   for (const tx of transactions) {
@@ -305,7 +293,6 @@ export function buildSeasonalReport(
     const count = txs.length
     const topProducts = computeProductStats(txs, overrides).slice(0, 5)
 
-    // Month breakdown within this season
     const mbMap = new Map<string, { revenue: number; transactions: number }>()
     for (const tx of txs) {
       const key = format(tx.date, 'yyyy-MM')
@@ -314,7 +301,6 @@ export function buildSeasonalReport(
       mbMap.set(key, e)
     }
     const monthBreakdown = cfg.months.map((mn, i) => {
-      // sum across all years for this month number
       let rev = 0, trx = 0
       for (const [key, val] of mbMap.entries()) {
         if (parseInt(key.split('-')[1], 10) === mn) { rev += val.revenue; trx += val.transactions }
@@ -342,35 +328,27 @@ export function buildSeasonalReport(
   return { type: 'seasonal', monthly, bestMonth, worstMonth, totalRevenue, seasons, bestSeason, worstSeason }
 }
 
-// ─── Monthly Detail ───────────────────────────────────────────────────────────
 
 export interface MonthlyDetailRow {
-  month: string           // 'yyyy-MM'
-  label: string           // 'January 2025'
-  // Income section (from Square CSV columns)
+  month: string
+  label: string
   grossSales: number
-  returns: number         // absolute value of refunds
-  discounts: number       // discounts & comps (absolute value)
-  netSales: number        // grossSales - returns - discounts
-  // Payments section
+  returns: number
+  discounts: number
+  netSales: number
   totalCollected: number
-  fees: number            // Square processing fees (positive/absolute)
-  netRevenue: number      // totalCollected - fees
-  // COGS & Margin
+  fees: number
+  netRevenue: number
   cogs: number | null
   grossMargin: number | null
   grossMarginPct: number | null
-  // OPEX
-  opexByCategory: Record<string, number>  // manually entered, keyed by category
-  opexSquareExpenses: number              // = fees (auto from CSV)
-  opexTotal: number                       // sum of all opex incl. square expenses
-  // Net
+  opexByCategory: Record<string, number>
+  opexSquareExpenses: number
+  opexTotal: number
   netProfit: number | null
-  netProfitPct: number | null             // netProfit / netRevenue
-  // Whether the CSV had detailed financial columns (grossSales, fees, etc.)
+  netProfitPct: number | null
   hasDetailedFinancials: boolean
-  // Metadata / legacy
-  revenue: number         // = netSales (for backward compat with chart/table)
+  revenue: number
   transactions: number
   avgTransaction: number
   topProduct: string | null
@@ -403,7 +381,6 @@ export function buildMonthlyDetailReport(
     monthMap.set(key, arr)
   }
 
-  // Build cost lookup: productName → unit cost
   const costMap = new Map<string, number>()
   for (const c of costData) {
     const cost = effectiveUnitCost(c)
@@ -411,7 +388,6 @@ export function buildMonthlyDetailReport(
   }
   const hasCostData = costMap.size > 0
 
-  // Group opex entries by month
   const opexByMonth = new Map<string, OpexEntry[]>()
   for (const entry of opexEntries) {
     const arr = opexByMonth.get(entry.month) ?? []
@@ -422,7 +398,6 @@ export function buildMonthlyDetailReport(
   const sorted = Array.from(monthMap.entries()).sort(([a], [b]) => a.localeCompare(b))
 
   const rows: MonthlyDetailRow[] = sorted.map(([month, txs], idx) => {
-    // Check if this batch of transactions has detailed Square financials
     const hasDetailedFinancials = txs.some(t => t.grossSales !== undefined)
 
     let grossSales: number
@@ -442,7 +417,6 @@ export function buildMonthlyDetailReport(
       fees           = Math.abs(txs.reduce((s, t) => s + (t.fees ?? 0), 0))
       netRevenue     = totalCollected - fees
     } else {
-      // Fallback: only netSales available (older imports)
       const positiveSales = txs.filter(t => t.netSales >= 0).reduce((s, t) => s + t.netSales, 0)
       const refundTotal   = Math.abs(txs.filter(t => t.netSales < 0).reduce((s, t) => s + t.netSales, 0))
       grossSales     = positiveSales + refundTotal
@@ -454,10 +428,8 @@ export function buildMonthlyDetailReport(
       netRevenue     = netSales
     }
 
-    // Product stats — computed once and reused for both COGS and top-product fields.
     const productStats = computeProductStats(txs, overrides)
 
-    // COGS: sum unit cost × units sold for each product
     let cogs: number | null = null
     if (hasCostData) {
       cogs = 0
@@ -471,16 +443,14 @@ export function buildMonthlyDetailReport(
     const grossMarginPct = grossMargin !== null && netRevenue > 0
       ? (grossMargin / netRevenue) * 100 : null
 
-    // OPEX: group manual entries by category for this month
     const monthOpex = opexByMonth.get(month) ?? []
     const opexByCategory: Record<string, number> = {}
     for (const entry of monthOpex) {
       opexByCategory[entry.category] = (opexByCategory[entry.category] ?? 0) + entry.amount
     }
     const opexManualTotal = Object.values(opexByCategory).reduce((s, v) => s + v, 0)
-    const opexTotal = opexManualTotal + fees  // Square fees count as OPEX too
+    const opexTotal = opexManualTotal + fees
 
-    // Net profit only computable when we have COGS (full picture)
     const netProfit    = grossMargin !== null ? grossMargin - opexManualTotal : null
     const netProfitPct = netProfit !== null && netRevenue > 0
       ? (netProfit / netRevenue) * 100 : null
@@ -538,20 +508,15 @@ export function buildMonthlyDetailReport(
   }
 }
 
-// ─── Cash Report ──────────────────────────────────────────────────────────────
 
 function isCash(method: string): boolean {
   const m = method.trim()
   if (!m) return false
   if (m.toLowerCase().includes('cash')) return true
-  // Square exports put a random alphanumeric reference (e.g. "A3KX9P2QM") in the
-  // card-brand column for cash transactions instead of a card name.
-  // Detect this: has both letters and digits, no spaces, no known card brand words.
   const hasLetters = /[A-Za-z]/.test(m)
   const hasDigits  = /[0-9]/.test(m)
   const noSpaces   = !/\s/.test(m)
   const isKnownCard = /visa|mastercard|amex|american.express|discover|jcb|diners|unionpay|eftpos|interac/i.test(m)
-  // Cap at 20 chars: Square cash refs are 8-12 chars; longer strings are device tokens / Apple Pay IDs
   return hasLetters && hasDigits && noSpaces && m.length >= 4 && m.length <= 20 && !isKnownCard
 }
 
@@ -563,8 +528,8 @@ export interface CashDayRow {
 }
 
 export interface CashWeekRow {
-  weekStart: string        // 'yyyy-MM-dd' (Sunday)
-  weekLabel: string        // 'Apr 7 – Apr 13, 2025'
+  weekStart: string
+  weekLabel: string
   cashRevenue: number
   cashCount: number
   totalRevenue: number
@@ -576,8 +541,8 @@ export interface CashReport {
   cashTransactions: number
   totalRevenue: number
   totalTransactions: number
-  cashPct: number          // % of transaction count
-  cashRevenuePct: number   // % of total revenue
+  cashPct: number
+  cashRevenuePct: number
   avgCashTransaction: number
   byDay: CashDayRow[]
   byWeek: CashWeekRow[]
@@ -590,7 +555,6 @@ export interface CashReport {
 export function buildCashReport(transactions: SalesTransaction[]): CashReport {
   const cashTxs = transactions.filter(tx => isCash(tx.paymentMethod?.trim() || ''))
 
-  // Daily
   const dayMap = new Map<string, CashDayRow>()
   for (const tx of transactions) {
     const key = format(tx.date, 'yyyy-MM-dd')
@@ -601,7 +565,6 @@ export function buildCashReport(transactions: SalesTransaction[]): CashReport {
   }
   const byDay = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date))
 
-  // Weekly
   const weekMap = new Map<string, { weekStart: Date; cashRevenue: number; cashCount: number; totalRevenue: number }>()
   for (const tx of transactions) {
     const ws = startOfWeek(tx.date, { weekStartsOn: 0 })
@@ -621,7 +584,6 @@ export function buildCashReport(transactions: SalesTransaction[]): CashReport {
       totalRevenue: w.totalRevenue,
     }))
 
-  // Day of week (1=Sun … 7=Sat)
   const dowMap = new Map<number, { cashCount: number; cashRevenue: number }>()
   for (const tx of cashTxs) {
     const e = dowMap.get(tx.dayOfWeek) ?? { cashCount: 0, cashRevenue: 0 }
@@ -634,7 +596,6 @@ export function buildCashReport(transactions: SalesTransaction[]): CashReport {
     ...(dowMap.get(i + 1) ?? { cashCount: 0, cashRevenue: 0 }),
   }))
 
-  // Hour
   const hourMap = new Map<number, { cashCount: number; cashRevenue: number }>()
   for (const tx of cashTxs) {
     const e = hourMap.get(tx.hour) ?? { cashCount: 0, cashRevenue: 0 }
@@ -647,7 +608,6 @@ export function buildCashReport(transactions: SalesTransaction[]): CashReport {
     ...(hourMap.get(h) ?? { cashCount: 0, cashRevenue: 0 }),
   }))
 
-  // Payment breakdown
   const payMap = new Map<string, { revenue: number; count: number }>()
   for (const tx of transactions) {
     const method = tx.paymentMethod?.trim() || 'Unknown'
@@ -680,7 +640,6 @@ export function buildCashReport(transactions: SalesTransaction[]): CashReport {
   }
 }
 
-// ─── Union ────────────────────────────────────────────────────────────────────
 
 export type AnyReport =
   | RevenueReport

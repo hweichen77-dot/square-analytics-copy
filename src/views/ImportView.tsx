@@ -121,7 +121,6 @@ export default function ImportView() {
     if (file.name.endsWith('.xlsx')) {
       handleXLSX(file)
     } else if (file.name.endsWith('.csv')) {
-      // Sniff headers to route to the correct parser
       const text = await file.text()
       const parsed = Papa.parse<Record<string, string>>(text, { header: true, preview: 1 })
       const headers = parsed.meta.fields ?? []
@@ -273,7 +272,6 @@ export default function ImportView() {
           onChange={e => { const f = e.target.files?.[0]; if (f) handleXLSX(f); e.target.value = '' }} />
       </div>
 
-      {/* Data backup / restore */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-5">
         <h2 className="font-semibold text-slate-200 mb-1">Data Backup</h2>
         <p className="text-sm text-slate-200 mb-4">Export all your data to a backup file. Restore it after reinstalling or on a new machine.</p>

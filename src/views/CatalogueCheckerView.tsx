@@ -7,18 +7,12 @@ import { splitItemVariation } from '../types/models'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useToastStore } from '../store/toastStore'
 
-// ---------------------------------------------------------------------------
-// Severity styles
-// ---------------------------------------------------------------------------
 const SEV: Record<AuditSeverity, { dot: string; badge: string; border: string }> = {
   error:   { dot: 'bg-red-400',   badge: 'bg-red-500/15 text-red-400 border-red-500/30',     border: 'border-red-500/20' },
   warning: { dot: 'bg-amber-400', badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', border: 'border-amber-500/20' },
   info:    { dot: 'bg-blue-400',  badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30',   border: 'border-blue-500/20' },
 }
 
-// ---------------------------------------------------------------------------
-// Auto-fix helpers
-// ---------------------------------------------------------------------------
 async function applyFix(issue: AuditIssue): Promise<void> {
   if (!issue.productId) return
   const updates: Record<string, unknown> = {}
@@ -32,9 +26,6 @@ async function applyFix(issue: AuditIssue): Promise<void> {
   await db.catalogueProducts.update(issue.productId, updates)
 }
 
-// ---------------------------------------------------------------------------
-// Grouped issues by item
-// ---------------------------------------------------------------------------
 interface ItemIssueGroup {
   itemName: string
   issues: AuditIssue[]
@@ -61,9 +52,6 @@ function groupIssuesByItem(issues: AuditIssue[]): ItemIssueGroup[] {
     .sort((a, b) => b.errorCount - a.errorCount || b.warningCount - a.warningCount)
 }
 
-// ---------------------------------------------------------------------------
-// Chevron
-// ---------------------------------------------------------------------------
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
@@ -87,14 +75,12 @@ export default function CatalogueCheckerView() {
   const [fixing, setFixing]         = useState(false)
   const [expandedItems, setExpanded] = useState<Set<string>>(new Set())
 
-  // -- Audit ------------------------------------------------------------------
   const { issues, errorCount, warningCount, infoCount } = useMemo(() => {
     const salesNames = new Set(stats.map(s => s.name))
     const avgPrices  = new Map(stats.map(s => [s.name, s.avgPrice]))
     return auditCatalogue(catalogue, salesNames, avgPrices)
   }, [stats, overrides, catalogue])
 
-  // -- Filter -----------------------------------------------------------------
   const visibleIssues = useMemo(
     () => filter === 'all' ? issues : issues.filter(i => i.severity === filter),
     [issues, filter],
@@ -103,7 +89,6 @@ export default function CatalogueCheckerView() {
   const itemGroups = useMemo(() => groupIssuesByItem(visibleIssues), [visibleIssues])
   const autoFixable = issues.filter(i => i.fixType && i.productId)
 
-  // -- Toggle expand ----------------------------------------------------------
   function toggleItem(name: string) {
     setExpanded(prev => {
       const next = new Set(prev)
@@ -113,12 +98,11 @@ export default function CatalogueCheckerView() {
     })
   }
 
-  // -- Fix actions ------------------------------------------------------------
   async function fixAll() {
     setFixing(true)
     let fixed = 0
     for (const issue of autoFixable) {
-      try { await applyFix(issue); fixed++ } catch { /* skip */ }
+      try { await applyFix(issue); fixed++ } catch {  }
     }
     setFixing(false)
     showToast(`Fixed ${fixed} issue${fixed !== 1 ? 's' : ''} automatically.`, 'success')
@@ -133,10 +117,8 @@ export default function CatalogueCheckerView() {
     }
   }
 
-  // -- Summary card click helper ----------------------------------------------
   function handleFilterClick(sev: Filter) {
     setFilter(prev => prev === sev ? 'all' : sev)
-    // Auto-expand all items when filtering
     if (sev !== 'all') {
       const names = issues
         .filter(i => i.severity === sev)
@@ -145,14 +127,12 @@ export default function CatalogueCheckerView() {
     }
   }
 
-  // -- Empty states -----------------------------------------------------------
   if (catalogue.length === 0) {
     return <EmptyState title="No catalogue loaded" subtitle="Import a Square catalogue XLSX or sync via Square to run the audit." />
   }
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100">Catalogue Checker</h1>
@@ -170,7 +150,6 @@ export default function CatalogueCheckerView() {
         )}
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { sev: 'error'   as Filter, label: 'Errors',   count: errorCount,   color: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/25' },
@@ -189,7 +168,6 @@ export default function CatalogueCheckerView() {
         ))}
       </div>
 
-      {/* Tax rules reminder */}
       <div className="bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200 flex items-center gap-2">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" className="shrink-0">
           <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
@@ -200,7 +178,6 @@ export default function CatalogueCheckerView() {
         </span>
       </div>
 
-      {/* All-clear */}
       {issues.length === 0 && (
         <div className="text-center py-16">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-4">
@@ -213,10 +190,8 @@ export default function CatalogueCheckerView() {
         </div>
       )}
 
-      {/* Issue groups */}
       {itemGroups.length > 0 && (
         <div className="space-y-2">
-          {/* Filter label */}
           {filter !== 'all' && (
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs text-slate-200">Showing {filter}s only · {visibleIssues.length} issues across {itemGroups.length} items</p>
@@ -230,7 +205,6 @@ export default function CatalogueCheckerView() {
 
             return (
               <div key={group.itemName} className={`bg-slate-800/30 border overflow-hidden ${SEV[worstSev].border}`}>
-                {/* Item header row */}
                 <button
                   onClick={() => toggleItem(group.itemName)}
                   className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-700/40 transition-colors cursor-pointer"
@@ -238,7 +212,6 @@ export default function CatalogueCheckerView() {
                   <Chevron open={isOpen} />
                   <span className="font-semibold text-slate-100 flex-1">{group.itemName}</span>
 
-                  {/* Issue count badges */}
                   <div className="flex items-center gap-1.5">
                     {group.errorCount > 0 && (
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${SEV.error.badge}`}>
@@ -258,7 +231,6 @@ export default function CatalogueCheckerView() {
                   </div>
                 </button>
 
-                {/* Issue detail rows */}
                 {isOpen && (
                   <div className="border-t border-slate-700/40 divide-y divide-slate-700/30">
                     {group.issues.map(issue => {
@@ -303,7 +275,6 @@ export default function CatalogueCheckerView() {
         </div>
       )}
 
-      {/* No matches */}
       {visibleIssues.length === 0 && issues.length > 0 && (
         <div className="text-center py-10 text-slate-200 text-sm">
           No {filter}s found.{' '}

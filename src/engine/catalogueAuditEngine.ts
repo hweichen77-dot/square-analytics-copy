@@ -4,14 +4,14 @@ import { MERCH_KEYWORDS } from './categoryClassifier'
 export type AuditSeverity = 'error' | 'warning' | 'info'
 
 export interface AuditIssue {
-  id: string            // unique stable key for React
-  productId?: number    // db id for auto-fixing
+  id: string
+  productId?: number
   productName: string
   issue: string
   detail: string
   severity: AuditSeverity
   fixType?: AuditFixType
-  fixValue?: unknown    // value to apply when auto-fixing
+  fixValue?: unknown
 }
 
 export type AuditFixType =
@@ -20,10 +20,6 @@ export type AuditFixType =
   | 'set_quantity_zero'
   | 'set_category'
 
-// ---------------------------------------------------------------------------
-// Tax rules
-// Merch items MUST be taxable. Food and beverage items are non-taxable.
-// ---------------------------------------------------------------------------
 
 function isMerch(product: CatalogueProduct): boolean {
   const cat = (product.category ?? '').toLowerCase()
@@ -36,12 +32,6 @@ function shouldBeTaxed(product: CatalogueProduct): boolean {
   return isMerch(product)
 }
 
-// ---------------------------------------------------------------------------
-// Category label rules
-// "Prepared Goods" is a common mis-labeling for food/beverage items in Square.
-// The correct Square category for taxable prepared food/drinks is
-// "Prepared Food and Beverage".
-// ---------------------------------------------------------------------------
 
 const WRONG_PREPARED_LABELS = [
   'prepared goods',
@@ -51,9 +41,6 @@ const WRONG_PREPARED_LABELS = [
 
 const CORRECT_PREPARED_LABEL = 'Prepared Food and Beverage'
 
-// ---------------------------------------------------------------------------
-// Main audit function
-// ---------------------------------------------------------------------------
 
 export interface AuditResult {
   issues: AuditIssue[]
@@ -64,14 +51,13 @@ export interface AuditResult {
 
 export function auditCatalogue(
   products: CatalogueProduct[],
-  salesNames?: Set<string>,           // product names that appear in sales data
-  avgPrices?: Map<string, number>,     // name → avg sold price
+  salesNames?: Set<string>,
+  avgPrices?: Map<string, number>,
 ): AuditResult {
   const issues: AuditIssue[] = []
   let idx = 0
   const nextId = () => `issue-${idx++}`
 
-  // -- Build lookup maps -------------------------------------------------------
   const nameCount = new Map<string, number>()
   const skuCount  = new Map<string, number>()
 
@@ -82,12 +68,10 @@ export function auditCatalogue(
     }
   }
 
-  // -- Per-product checks ------------------------------------------------------
   for (const p of products) {
     const id = p.id
     const name = p.name
 
-    // 1. Merch must be taxable
     if (shouldBeTaxed(p) && !p.taxable) {
       issues.push({
         id: nextId(),
@@ -100,7 +84,6 @@ export function auditCatalogue(
       })
     }
 
-    // 2. Non-merch item is taxed but should not be
     if (p.taxable && !shouldBeTaxed(p)) {
       issues.push({
         id: nextId(),
@@ -113,7 +96,6 @@ export function auditCatalogue(
       })
     }
 
-    // 3. Negative quantity
     if (p.quantity !== null && p.quantity !== undefined && p.quantity < 0) {
       issues.push({
         id: nextId(),
@@ -127,7 +109,6 @@ export function auditCatalogue(
       })
     }
 
-    // 4. Wrong category label — "Prepared Goods" / similar → should be "Prepared Food and Beverage"
     const catNorm = (p.category ?? '').toLowerCase().trim()
     if (WRONG_PREPARED_LABELS.some(l => catNorm === l || catNorm.startsWith(l))) {
       issues.push({
@@ -142,7 +123,6 @@ export function auditCatalogue(
       })
     }
 
-    // 5. Missing / uncategorized / Square "Non" placeholder
     if (!p.category || p.category.trim() === '' || ['uncategorized', 'non'].includes(p.category.toLowerCase().trim())) {
       issues.push({
         id: nextId(),
@@ -154,7 +134,6 @@ export function auditCatalogue(
       })
     }
 
-    // 6. Zero or missing price (non-variable items shouldn't have $0)
     if (p.price !== null && p.price !== undefined && p.price === 0 && p.enabled) {
       issues.push({
         id: nextId(),
@@ -166,7 +145,6 @@ export function auditCatalogue(
       })
     }
 
-    // 7. Null / missing price on active item
     if ((p.price === null || p.price === undefined) && p.enabled) {
       issues.push({
         id: nextId(),
@@ -178,7 +156,6 @@ export function auditCatalogue(
       })
     }
 
-    // 8. Duplicate item names
     if ((nameCount.get(name) ?? 0) > 1) {
       issues.push({
         id: nextId(),
@@ -190,7 +167,6 @@ export function auditCatalogue(
       })
     }
 
-    // 9. Duplicate SKUs
     if (p.sku && (skuCount.get(p.sku) ?? 0) > 1) {
       issues.push({
         id: nextId(),
@@ -202,7 +178,6 @@ export function auditCatalogue(
       })
     }
 
-    // 10. Item name contains a comma (breaks CSV import)
     if (name.includes(',')) {
       issues.push({
         id: nextId(),
@@ -214,7 +189,6 @@ export function auditCatalogue(
       })
     }
 
-    // 11. Archived item with stock > 0
     if (!p.enabled && (p.quantity ?? 0) > 0) {
       issues.push({
         id: nextId(),
@@ -226,7 +200,6 @@ export function auditCatalogue(
       })
     }
 
-    // 12. Price mismatch vs sales data
     if (avgPrices && p.price !== null && p.price !== undefined) {
       const avg = avgPrices.get(name)
       if (avg !== undefined && Math.abs(p.price - avg) > 0.50) {
@@ -241,11 +214,8 @@ export function auditCatalogue(
       }
     }
 
-    // 13. Sold in sales data but not in catalogue (only applies to enabled items check)
-    // (handled outside per-product loop with salesNames set)
   }
 
-  // -- Catalogue-vs-sales checks (require external data) -----------------------
   if (salesNames) {
     const catNames = new Set(products.map(p => p.name))
     for (const soldName of salesNames) {

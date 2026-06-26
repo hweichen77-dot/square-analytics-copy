@@ -9,9 +9,6 @@ import { useToastStore } from '../store/toastStore'
 import { splitItemVariation } from '../types/models'
 import type { CatalogueProduct } from '../types/models'
 
-// ---------------------------------------------------------------------------
-// Known categories
-// ---------------------------------------------------------------------------
 const KNOWN_CATEGORIES = [
   'Ramen',
   'Carbonated Drinks',
@@ -26,9 +23,6 @@ const KNOWN_CATEGORIES = [
   'Other',
 ]
 
-// ---------------------------------------------------------------------------
-// Grouped data structure
-// ---------------------------------------------------------------------------
 interface ItemGroup {
   itemName: string
   category: string
@@ -63,9 +57,6 @@ function groupByItem(products: CatalogueProduct[]): ItemGroup[] {
   }).sort((a, b) => a.itemName.localeCompare(b.itemName))
 }
 
-// ---------------------------------------------------------------------------
-// Item / Variation modal
-// ---------------------------------------------------------------------------
 interface FormData {
   itemName: string
   variationName: string
@@ -99,9 +90,7 @@ function toForm(p: CatalogueProduct): FormData {
 }
 
 interface ItemModalProps {
-  /** If set, editing an existing variation. If null, creating new item+variation. */
   editing?: CatalogueProduct | null
-  /** If set, pre-fills item name for "Add Variation to existing item" */
   forItem?: string
   onClose: () => void
   onSave: (data: Omit<CatalogueProduct, 'id'>) => Promise<void>
@@ -168,7 +157,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
       <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-        {/* Header */}
         <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-slate-100 text-base">{title}</h2>
@@ -187,9 +175,7 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-5 space-y-4 max-h-[72vh] overflow-y-auto">
-          {/* Item Name — locked when adding variation */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">
               Item Name <span className="text-red-400">*</span>
@@ -205,7 +191,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
             {errors.itemName && <p className="text-xs text-red-400 mt-1">{errors.itemName}</p>}
           </div>
 
-          {/* Variation Name */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">Variation Name</label>
             <input
@@ -217,7 +202,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
             />
           </div>
 
-          {/* Price + Qty */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-200 mb-1.5">Price ($)</label>
@@ -241,7 +225,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
             </div>
           </div>
 
-          {/* SKU */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">SKU</label>
             <input
@@ -252,7 +235,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
             />
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-xs font-medium text-slate-200 mb-1.5">Category</label>
             <select
@@ -277,7 +259,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
             </div>
           )}
 
-          {/* Taxable + Enabled */}
           <div className="flex gap-6 pt-1">
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input type="checkbox" checked={form.taxable} onChange={field('taxable')} className="w-4 h-4 rounded accent-teal-500" />
@@ -294,7 +275,6 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-700 flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm text-slate-200 hover:text-slate-200 transition-colors cursor-pointer">
             Cancel
@@ -312,18 +292,12 @@ function ItemModal({ editing, forItem, onClose, onSave }: ItemModalProps) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Price range display
-// ---------------------------------------------------------------------------
 function PriceDisplay({ range }: { range: { min: number; max: number } | null }) {
   if (!range) return <span className="text-slate-200">—</span>
   if (range.min === range.max) return <span className="text-slate-100">{formatCurrency(range.min)}</span>
   return <span className="text-slate-100">{formatCurrency(range.min)} – {formatCurrency(range.max)}</span>
 }
 
-// ---------------------------------------------------------------------------
-// Chevron icon
-// ---------------------------------------------------------------------------
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
@@ -336,9 +310,6 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main view
-// ---------------------------------------------------------------------------
 export default function CatalogueProductsView() {
   const catalogue  = useLiveQuery(() => db.catalogueProducts.orderBy('name').toArray(), []) ?? []
   const showToast  = useToastStore(s => s.show)
@@ -351,7 +322,6 @@ export default function CatalogueProductsView() {
   const [addVarFor, setAddVarFor]           = useState<string | null>(null)
   const [exporting, setExporting]           = useState(false)
 
-  // -- Derived data -----------------------------------------------------------
   const categories = useMemo(() => {
     const cats = Array.from(new Set(catalogue.map(c => c.category).filter(Boolean)))
     return ['All', ...cats.sort()]
@@ -363,7 +333,6 @@ export default function CatalogueProductsView() {
     const q = search.toLowerCase()
     return allGroups
       .map(g => {
-        // filter variations inside
         const vars = g.variations.filter(v => {
           if (!showArchived && !v.enabled) return false
           if (categoryFilter !== 'All' && v.category !== categoryFilter) return false
@@ -376,7 +345,6 @@ export default function CatalogueProductsView() {
       .filter((g): g is ItemGroup => g !== null)
   }, [allGroups, search, categoryFilter, showArchived])
 
-  // -- Summary stats ----------------------------------------------------------
   const totalItems    = allGroups.length
   const totalVars     = catalogue.length
   const activeVars    = catalogue.filter(c => c.enabled).length
@@ -384,7 +352,6 @@ export default function CatalogueProductsView() {
   const totalStock    = catalogue.reduce((s, c) => s + (c.quantity ?? 0), 0)
   const multiVarItems = allGroups.filter(g => g.variations.length > 1).length
 
-  // -- Toggle expand ----------------------------------------------------------
   function toggleExpand(itemName: string) {
     setExpandedItems(prev => {
       const next = new Set(prev)
@@ -402,7 +369,6 @@ export default function CatalogueProductsView() {
     setExpandedItems(new Set())
   }
 
-  // -- CRUD ------------------------------------------------------------------
   async function handleSave(data: Omit<CatalogueProduct, 'id'>) {
     if (editTarget?.id) {
       await db.catalogueProducts.update(editTarget.id, data)
@@ -413,7 +379,6 @@ export default function CatalogueProductsView() {
         ? `Added variation "${data.variationName}" to "${data.itemName}"`
         : `Added "${data.itemName}" to catalogue`
       showToast(msg, 'success')
-      // Auto-expand the item after adding a variation
       setExpandedItems(prev => new Set([...prev, data.itemName]))
     }
   }
@@ -442,7 +407,6 @@ export default function CatalogueProductsView() {
     setAddVarFor(null)
   }
 
-  // -- Export ----------------------------------------------------------------
   function handleExport() {
     if (catalogue.length === 0) { showToast('No items to export.', 'error'); return }
     setExporting(true)
@@ -456,7 +420,6 @@ export default function CatalogueProductsView() {
     }
   }
 
-  // -- Empty state -----------------------------------------------------------
   if (catalogue.length === 0) {
     return (
       <>
@@ -472,10 +435,8 @@ export default function CatalogueProductsView() {
     )
   }
 
-  // -- Main render -----------------------------------------------------------
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-100">Catalogue Products</h1>
@@ -501,7 +462,6 @@ export default function CatalogueProductsView() {
         </div>
       </div>
 
-      {/* Summary stat strip */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: 'Items',           value: totalItems,    color: 'text-teal-400' },
@@ -517,7 +477,6 @@ export default function CatalogueProductsView() {
         ))}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <input
           type="text"
@@ -549,7 +508,6 @@ export default function CatalogueProductsView() {
         </div>
       </div>
 
-      {/* Item groups table */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -572,13 +530,11 @@ export default function CatalogueProductsView() {
 
                 return (
                   <>
-                    {/* ── Item (parent) row ── */}
                     <tr
                       key={`item-${group.itemName}`}
                       onClick={() => varCount > 1 && toggleExpand(group.itemName)}
                       className={`border-b border-slate-700/40 transition-colors ${varCount > 1 ? 'cursor-pointer hover:bg-slate-700/40' : 'hover:bg-slate-700/20'} ${isOpen ? 'bg-slate-700/20' : ''}`}
                     >
-                      {/* Chevron */}
                       <td className="px-4 py-3 text-slate-200">
                         {varCount > 1
                           ? <Chevron open={isOpen} />
@@ -586,7 +542,6 @@ export default function CatalogueProductsView() {
                         }
                       </td>
 
-                      {/* Name + variation badge */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-slate-100">{group.itemName}</span>
@@ -604,31 +559,26 @@ export default function CatalogueProductsView() {
                         )}
                       </td>
 
-                      {/* Category */}
                       <td className="px-4 py-3">
                         {group.category
                           ? <Badge variant="secondary">{group.category}</Badge>
                           : <span className="text-slate-200">—</span>}
                       </td>
 
-                      {/* Price */}
                       <td className="px-4 py-3 text-right">
                         <PriceDisplay range={group.priceRange} />
                       </td>
 
-                      {/* Stock */}
                       <td className="px-4 py-3 text-right text-slate-100 tabular-nums">
                         {group.totalQuantity > 0 ? group.totalQuantity : <span className="text-slate-200">—</span>}
                       </td>
 
-                      {/* Tax */}
                       <td className="px-4 py-3 text-center">
                         {group.anyTaxable
                           ? <span className="text-xs font-medium text-emerald-400">Yes</span>
                           : <span className="text-xs text-slate-200">No</span>}
                       </td>
 
-                      {/* Status */}
                       <td className="px-4 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                           group.allEnabled ? 'bg-emerald-500/15 text-emerald-400'
@@ -639,7 +589,6 @@ export default function CatalogueProductsView() {
                         </span>
                       </td>
 
-                      {/* Actions */}
                       <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1.5">
                           {varCount === 1 && (
@@ -660,7 +609,6 @@ export default function CatalogueProductsView() {
                       </td>
                     </tr>
 
-                    {/* ── Variation (child) rows ── */}
                     {isOpen && group.variations.map((v, vi) => (
                       <tr
                         key={`var-${v.id ?? v.name}`}
@@ -668,7 +616,6 @@ export default function CatalogueProductsView() {
                       >
                         <td className="px-4 py-2.5" />
 
-                        {/* Variation name */}
                         <td className="px-4 py-2.5 pl-10">
                           <div className="flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-slate-600 shrink-0" />
@@ -726,12 +673,10 @@ export default function CatalogueProductsView() {
         )}
       </div>
 
-      {/* Footer hint */}
       <p className="text-xs text-slate-200 text-right">
         "Export to Square" downloads a .xlsx importable at Square Dashboard → Items → Actions → Import Library.
       </p>
 
-      {/* Modal */}
       {showModal && (
         <ItemModal
           editing={editTarget}

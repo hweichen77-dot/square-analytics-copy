@@ -47,7 +47,6 @@ export function parseXLSXCatalogue(buffer: ArrayBuffer): XLSXCatalogueResult {
   const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' }) as unknown[][]
   if (rows.length < 2) return { products: [], costs: [] }
 
-  // Find the real header row (first row with non-empty cells)
   const headerRowIdx = rows.findIndex(r => Array.isArray(r) && r.some(c => String(c).trim()))
   if (headerRowIdx === -1) return { products: [], costs: [] }
 
@@ -77,7 +76,6 @@ export function parseXLSXCatalogue(buffer: ArrayBuffer): XLSXCatalogueResult {
     if (baseName.startsWith('*')) baseName = baseName.slice(1).trim()
     if (!baseName) continue
 
-    // Build full product name: "Item Name (Variation)" to match CSV description format
     const variation = variationIdx !== null ? String(row[variationIdx] ?? '').trim() : ''
     const name = variation ? `${baseName} (${variation})` : baseName
 
@@ -111,7 +109,6 @@ export function parseXLSXCatalogue(buffer: ArrayBuffer): XLSXCatalogueResult {
       squareItemID: token,
     })
 
-    // Save cost data if a unit cost is present
     if (unitCost !== null && unitCost > 0) {
       costs.push({
         productName: name,

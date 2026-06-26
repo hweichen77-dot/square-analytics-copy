@@ -59,7 +59,6 @@ function exportToXLSX(items: PurchaseOrderItem[], qtyOverrides: Record<string, n
   writeFile(wb, `PurchaseOrder-${format(new Date(), 'yyyy-MM-dd')}.xlsx`)
 }
 
-// SVG icon helpers
 function IconBox() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -105,7 +104,6 @@ export default function PurchaseOrderView() {
 
   const overrides = useMemo(() => ({}), [])
 
-  // Pre-generate velocity preview (top items by weekly velocity)
   const { velocityPreview, totalProductCount } = useMemo(() => {
     const stats = computeProductStats(transactions)
     const sorted = [...stats].sort((a, b) => productVelocity(b) - productVelocity(a))
@@ -198,7 +196,6 @@ export default function PurchaseOrderView() {
         )}
       </div>
 
-      {/* ── Period selector card ── */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-6">
         <h2 className="text-sm font-semibold text-slate-200 mb-1">Select time period to order for</h2>
         <p className="text-xs text-slate-200 mb-5">
@@ -235,10 +232,8 @@ export default function PurchaseOrderView() {
         </div>
       </div>
 
-      {/* ── Pre-generate velocity preview ── */}
       {!generated && velocityPreview.length > 0 && (
         <div className="space-y-4">
-          {/* Quick stat strip */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-800/30 border border-slate-700/40 p-4">
               <p className="text-xs text-slate-200">Products Tracked</p>
@@ -261,7 +256,6 @@ export default function PurchaseOrderView() {
             </div>
           </div>
 
-          {/* Top items velocity preview */}
           <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
               <div>
@@ -303,10 +297,8 @@ export default function PurchaseOrderView() {
         </div>
       )}
 
-      {/* ── Report content (only after Generate is clicked) ── */}
       {generated && (
         <>
-          {/* Summary cards */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-slate-800/30 border border-slate-700/40 p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
@@ -340,7 +332,6 @@ export default function PurchaseOrderView() {
             </div>
           </div>
 
-          {/* Season / events banner */}
           <div className="bg-teal-500/10 border border-teal-500/20 rounded-xl p-4 flex items-start gap-3">
             <div className="text-teal-400 mt-0.5">
               <IconLeaf />
@@ -360,7 +351,6 @@ export default function PurchaseOrderView() {
             )}
           </div>
 
-          {/* Filter + count */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-slate-100 cursor-pointer select-none">
@@ -385,7 +375,6 @@ export default function PurchaseOrderView() {
             <p className="text-xs text-slate-200">{displayItems.length} of {orderItems.length} items</p>
           </div>
 
-          {/* Main table */}
           <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -444,7 +433,6 @@ export default function PurchaseOrderView() {
             </div>
           </div>
 
-          {/* Category subtotals */}
           {categorySubtotals.length > 0 && (
             <div className="bg-slate-800/30 border border-slate-700/40 p-5">
               <h2 className="text-sm font-semibold text-slate-200 mb-4">Category Subtotals</h2>

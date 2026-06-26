@@ -10,7 +10,6 @@ export async function upsertStaffWage(staffName: string, hourlyWage: number): Pr
   }
 }
 
-// Inserts refunds keyed by refundId, skipping ones already stored. Returns count added.
 export async function upsertRefunds(refunds: Omit<StoredRefund, 'id'>[]): Promise<number> {
   if (refunds.length === 0) return 0
   const ids = refunds.map(r => r.refundId)
@@ -21,13 +20,11 @@ export async function upsertRefunds(refunds: Omit<StoredRefund, 'id'>[]): Promis
   if (toAdd.length === 0) return 0
   let added = 0
   for (const r of toAdd) {
-    try { await db.refunds.add(r); added++ } catch { /* duplicate — skip */ }
+    try { await db.refunds.add(r); added++ } catch {  }
   }
   return added
 }
 
-// Upserts shifts keyed by shiftId — updates existing rows (an open shift may
-// later gain an endAt) and inserts new ones. Returns count added.
 export async function upsertShifts(shifts: Omit<StoredShift, 'id'>[]): Promise<number> {
   if (shifts.length === 0) return 0
   let added = 0
@@ -53,15 +50,12 @@ export async function upsertTransactions(transactions: Omit<SalesTransaction, 'i
   )
   const toAdd = transactions.filter(t => !existing.has(t.transactionID))
   if (toAdd.length === 0) return 0
-  // bulkAdd throws on unique constraint violations — use bulkPut to handle any
-  // duplicate transactionIDs that slipped through the pre-filter (e.g., concurrent syncs).
   try {
     await db.salesTransactions.bulkAdd(toAdd)
   } catch {
-    // Fall back to one-by-one put to maximise rows saved on partial conflict
     let added = 0
     for (const tx of toAdd) {
-      try { await db.salesTransactions.add(tx); added++ } catch { /* duplicate — skip */ }
+      try { await db.salesTransactions.add(tx); added++ } catch {  }
     }
     return added
   }
@@ -94,9 +88,6 @@ export async function upsertProductCosts(costs: Omit<ProductCostData, 'id'>[]): 
   })
 }
 
-// Removes CSV-sourced transactions that are duplicates of API transactions.
-// Matches by (date truncated to day, netSales, staffName) because CSV uses paymentID
-// while API uses orderID — the same sale has different transactionIDs across sources.
 export async function removeCsvDuplicates(): Promise<number> {
   const apiTxs = await db.salesTransactions.filter(t => t.source === 'api').toArray()
   if (apiTxs.length === 0) return 0
@@ -153,7 +144,6 @@ export async function exportAllData(): Promise<string> {
 }
 
 export async function restoreAllData(json: string): Promise<{ transactions: number; catalogue: number }> {
-  // Parse and validate structure BEFORE touching existing data
   let backup: {
     version: number
     data: {
@@ -166,7 +156,6 @@ export async function restoreAllData(json: string): Promise<{ transactions: numb
       storeEvents?: Record<string, unknown>[]
       productBundles?: Record<string, unknown>[]
       staffWages?: Record<string, unknown>[]
-      // v1 used salesTransactions/catalogueProducts keys
       salesTransactions?: Record<string, unknown>[]
       catalogueProducts?: Record<string, unknown>[]
       productCostData?: Record<string, unknown>[]
@@ -185,13 +174,11 @@ export async function restoreAllData(json: string): Promise<{ transactions: numb
   }
 
   const d = backup.data
-  // Support both v1 and v2 key names
   const txRaw = d.transactions ?? d.salesTransactions ?? []
   const catRaw = d.catalogue ?? d.catalogueProducts ?? []
   const costRaw = d.costData ?? d.productCostData ?? []
   const overridesRaw = d.overrides ?? d.categoryOverrides ?? []
 
-  // Strip IDs and fix Date fields — validate dates before clearing existing data
   function stripId<T extends Record<string, unknown>>(rec: T): Omit<T, 'id'> {
     const { id: _id, ...rest } = rec
     return rest as Omit<T, 'id'>
@@ -203,7 +190,6 @@ export async function restoreAllData(json: string): Promise<{ transactions: numb
     return d
   }
 
-  // Pre-validate all rows with dates before any destructive operation
   const txToAdd = txRaw.map((r, i) => {
     try { return { ...stripId(r), date: safeDate(r.date, `transactions[${i}].date`) }
     } catch (e) { throw new Error(`Backup validation failed: ${(e as Error).message}`) }
@@ -223,19 +209,15 @@ export async function restoreAllData(json: string): Promise<{ transactions: numb
   const eventsToAdd = (d.storeEvents ?? []).map((r, i) => {
     const start = new Date(r.startDate as string)
     const end = new Date(r.endDate as string)
-    // Silently skip rows with invalid dates to avoid storing corrupted Date objects.
     if (isNaN(start.getTime())) throw new Error(`Invalid startDate in storeEvents[${i}]: ${r.startDate}`)
     if (isNaN(end.getTime())) throw new Error(`Invalid endDate in storeEvents[${i}]: ${r.endDate}`)
     return { ...stripId(r), startDate: start, endDate: end }
   })
   const bundlesToAdd = (d.productBundles ?? []).map(r => ({
     ...stripId(r),
-    // r.createdDate may be a serialized ISO string or absent; fall back to current time.
     createdDate: r.createdDate ? new Date(r.createdDate as string) : new Date(),
   }))
 
-  // All validation passed — clear and restore atomically so a mid-restore failure
-  // never leaves the DB in a partially-written state.
   await db.transaction('rw', [
     db.salesTransactions, db.catalogueProducts, db.productCostData, db.categoryOverrides,
     db.opexEntries, db.restockLogs, db.storeEvents, db.productBundles, db.staffWages,
@@ -252,8 +234,6 @@ export async function restoreAllData(json: string): Promise<{ transactions: numb
       db.staffWages.clear(),
     ])
     if (txToAdd.length) await db.salesTransactions.bulkPut(txToAdd as unknown as SalesTransaction[])
-    // bulkPut handles re-restores cleanly: if the user restores from backup a second time,
-    // catalogue rows with the same unique &name constraint won't throw a ConstraintError.
     if (catToAdd.length) await db.catalogueProducts.bulkPut(catToAdd as unknown as CatalogueProduct[])
     if (costToAdd.length) await db.productCostData.bulkAdd(costToAdd as unknown as ProductCostData[])
     if (overridesRaw.length) await db.categoryOverrides.bulkAdd(overridesRaw.map(stripId) as unknown as CategoryOverride[])

@@ -3,10 +3,6 @@ import { startOfDay } from 'date-fns'
 import { useAllTransactions, useRestockLogs, useCatalogueProducts } from '../db/useTransactions'
 import { computeProductStats, productVelocity } from '../engine/analyticsEngine'
 
-/**
- * Returns the count of products that are outOfStock or critical (≤5 days until stockout).
- * Mirrors the urgency logic in RestockView's computeAlerts.
- */
 export function useRestockAlertCount(): number {
   const transactions = useAllTransactions()
   const restockLogs = useRestockLogs()

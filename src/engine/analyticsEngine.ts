@@ -2,12 +2,6 @@ import { startOfDay, startOfWeek, startOfMonth, format } from 'date-fns'
 import type { SalesTransaction } from '../types/models'
 import { parseProductItems } from '../types/models'
 
-/**
- * Compute each item's share of tx.netSales.
- * When tx.lineItems is present (Square-synced), allocates proportionally by gross price.
- * This correctly distributes order-level discounts/tips instead of splitting evenly by qty.
- * Falls back to even allocation by qty for CSV-imported transactions without line-item prices.
- */
 function allocateRevenue(tx: SalesTransaction): Map<string, number> {
   const result = new Map<string, number>()
   const items = parseProductItems(tx.itemDescription)
@@ -23,7 +17,6 @@ function allocateRevenue(tx: SalesTransaction): Map<string, number> {
     }
   }
 
-  // Fallback: even allocation by qty
   const totalQty = items.reduce((s, i) => s + i.qty, 0)
   const perUnit = tx.netSales / Math.max(totalQty, 1)
   for (const item of items) {
@@ -104,11 +97,8 @@ export function productTrend(stats: ProductStats): SalesTrend {
 }
 
 export function productVelocity(stats: ProductStats): number {
-  // Span from first sale to today — counts all weeks the product has been available,
-  // including quiet weeks, so a short burst of sales doesn't inflate velocity.
   const spanDays = (Date.now() - stats.firstSoldDate.getTime()) / 86_400_000
   const totalWeeks = Math.max(1, spanDays / 7)
-  // Return daily velocity (units per day) for backward compatibility with callers.
   return (stats.totalUnitsSold / totalWeeks) / 7
 }
 
@@ -117,8 +107,6 @@ export function isSlowMover(stats: ProductStats): boolean {
   return daysSinceLast > 30
 }
 
-// Items that aren't real products — custom amounts, modifiers, voided lines.
-// Filtering these prevents them from polluting product analytics.
 const SKIP_ITEM_PATTERN = /^(custom amount|custom amt|custom price|open amount|variable price|modifier|fee|tip|service charge|gift card|discount)$/i
 
 function isAnalyticsItem(name: string): boolean {

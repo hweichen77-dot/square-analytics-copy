@@ -6,7 +6,6 @@ function parseDateTime(value: string): Date | null {
   if (!value) return null
   const iso = new Date(value)
   if (!isNaN(iso.getTime())) return iso
-  // Handle "2024-01-15 10:30:00 -0500" format
   const spaced = value.replace(' ', 'T').replace(/\s([+-]\d{2}:?\d{2})$/, '$1')
   const iso2 = new Date(spaced)
   if (!isNaN(iso2.getTime())) return iso2
@@ -18,9 +17,6 @@ function parseCurrency(value: string): number {
   return parseFloat(value.replace(/[$,]/g, '').trim()) || 0
 }
 
-// ── Shopify Orders CSV ────────────────────────────────────────────────────────
-// Shopify exports one row per line item. Rows sharing the same "Name" (#1001)
-// belong to the same order. We group them and emit one transaction per order.
 
 export function isShopifyCSV(headers: string[]): boolean {
   const lower = new Set(headers.map(h => h.toLowerCase().trim()))
@@ -37,7 +33,6 @@ export function parseShopifyCSV(content: string): CSVParseResult {
   const rows = result.data
   if (rows.length === 0) return { transactions: [], skipped: 0, schemaError: 'Shopify CSV appears empty.' }
 
-  // Group rows by order name/number
   const orderMap = new Map<string, Record<string, string>[]>()
   for (const row of rows) {
     const key = row['Name']?.trim() || row['Order Number']?.trim() || ''
@@ -56,11 +51,9 @@ export function parseShopifyCSV(content: string): CSVParseResult {
     const date = parseDateTime(dateStr)
     if (!date) { skipped++; continue }
 
-    // Total is repeated on every row for the same order — take from first
     const netSales = parseCurrency(first['Total'] || first['Subtotal'] || '')
     if (netSales <= 0) { skipped++; continue }
 
-    // Combine line items into description
     const items = orderRows
       .map(row => {
         const name = (row['Lineitem name'] || '').trim()
@@ -93,8 +86,6 @@ export function parseShopifyCSV(content: string): CSVParseResult {
   return { transactions, skipped, schemaError: null }
 }
 
-// ── Etsy Orders CSV ───────────────────────────────────────────────────────────
-// Etsy exports one row per line item grouped by Order ID.
 
 export function isEtsyCSV(headers: string[]): boolean {
   const lower = new Set(headers.map(h => h.toLowerCase().trim()))

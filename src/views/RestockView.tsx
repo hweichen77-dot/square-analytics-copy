@@ -56,17 +56,14 @@ function computeAlerts(
     if (!existing || log.date > existing.date) latestLog[log.productName] = log
   }
 
-  // Build a case-insensitive lookup for catalogue quantities.
   const catalogueQtyLower: Record<string, number> = {}
   for (const p of catalogueProducts) {
     if (p.quantity !== null) catalogueQtyLower[p.name.toLowerCase().trim()] = p.quantity
   }
 
   function lookupCatalogueQty(name: string): number | undefined {
-    // Exact match first, then case-insensitive, then strip trailing variant "(S)" etc.
     const lower = name.toLowerCase().trim()
     if (catalogueQtyLower[lower] !== undefined) return catalogueQtyLower[lower]
-    // Try stripping a trailing parenthetical variant like " (S)", " (M)", etc.
     const base = lower.replace(/\s*\([^)]*\)\s*$/, '').trim()
     return catalogueQtyLower[base]
   }
@@ -75,7 +72,6 @@ function computeAlerts(
   const alerts: RestockAlert[] = []
 
   for (const product of stats) {
-    // Span from first sale to today — counts quiet weeks so a burst doesn't inflate velocity.
     const spanDays = (today.getTime() - product.firstSoldDate.getTime()) / 86_400_000
     const weeksSpan = Math.max(1, spanDays / 7)
     const weeklyVelocity = product.totalUnitsSold / weeksSpan
@@ -152,9 +148,6 @@ function LogRestockModal({ productName, onClose }: { productName: string; onClos
   async function save() {
     const n = parseInt(qty, 10)
     if (!n || n <= 0) { setError(true); return }
-    // Append T00:00:00 so the browser parses this as local midnight rather than
-    // UTC midnight. Without it, "2026-05-20" parses to UTC midnight, which rolls
-    // back to the previous calendar day in timezones west of UTC.
     await db.restockLogs.add({ productName, date: new Date(date + 'T00:00:00'), quantity: n, notes })
     onClose()
   }

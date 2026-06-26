@@ -157,7 +157,6 @@ export default function ProductDetailView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/inventory')} className="text-teal-400 text-sm hover:underline">← Back</button>
@@ -172,7 +171,6 @@ export default function ProductDetailView() {
           </span>
         </div>
 
-        {/* KPI cards */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <KpiCard title="Units Sold" value={formatNumber(stats.totalUnitsSold)} />
           <KpiCard title="Total Revenue" value={formatCurrency(stats.totalRevenue)} />
@@ -184,7 +182,6 @@ export default function ProductDetailView() {
         </div>
       </div>
 
-      {/* Revenue & Units Over Time */}
       <div className="bg-slate-800/30 border border-slate-700/40 p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-slate-200">Revenue & Units Over Time</h2>
@@ -198,7 +195,6 @@ export default function ProductDetailView() {
           </div>
         </div>
 
-        {/* Revenue chart */}
         <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
           <div className="flex items-center gap-4">
             <span className="text-xs font-medium text-slate-200">Revenue</span>
@@ -235,7 +231,6 @@ export default function ProductDetailView() {
           </ResponsiveContainer>
         </div>
 
-        {/* Units chart */}
         <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
           <span className="text-xs font-medium text-slate-200">Units Sold</span>
           <ResponsiveContainer width="100%" height={160}>
@@ -253,11 +248,9 @@ export default function ProductDetailView() {
         </div>
       </div>
 
-      {/* Sales Patterns */}
       <div className="space-y-3">
         <h2 className="font-semibold text-slate-200">Sales Patterns</h2>
         <div className="flex gap-4 items-start">
-          {/* Day of week chart */}
           <div className="flex-1 bg-slate-800/30 border border-slate-700/40 p-4 space-y-2">
             <span className="text-xs font-medium text-slate-200">Sales by Day of Week</span>
             <ResponsiveContainer width="100%" height={120}>
@@ -276,7 +269,6 @@ export default function ProductDetailView() {
             </ResponsiveContainer>
           </div>
 
-          {/* Pattern indicators */}
           <div className="bg-slate-800/30 border border-slate-700/40 p-4 space-y-4 w-52 shrink-0">
             <PatternIndicator title="Best Day"
               value={peakDayOfWeek ? dayName(peakDayOfWeek) : 'N/A'} />
@@ -288,7 +280,6 @@ export default function ProductDetailView() {
         </div>
       </div>
 
-      {/* Transaction History */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-700/50 flex items-center justify-between">
           <h2 className="font-semibold text-slate-200">Transaction History</h2>

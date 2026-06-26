@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 
-// Ambient declarations for platform-specific packages without bundler-compatible exports
 declare module '@capacitor/app' {
   export const App: {
     addListener(

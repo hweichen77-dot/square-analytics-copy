@@ -91,8 +91,6 @@ function CostManagementModal({
   const [search, setSearch] = useState('')
   const [drafts, setDrafts] = useState<CostDraft[]>(() => buildDrafts(products, costData))
 
-  // Re-sync drafts if costData was [] on mount (useLiveQuery resolves asynchronously).
-  // Only runs once — after that the user owns the draft state.
   const synced = useRef(false)
   useEffect(() => {
     if (!synced.current && costData.length > 0) {
@@ -103,14 +101,9 @@ function CostManagementModal({
 
   async function saveAll() {
     try {
-      // Query the DB fresh at save time so we never rely on a stale prop snapshot.
-      // This is critical: using the stale prop causes duplicate-key ConstraintErrors
-      // when multiple product variants share the same base name (e.g. "Hoodie (S)"
-      // and "Hoodie (M)" both map to "Hoodie") and the second add() would throw.
       const currentData = await db.productCostData.toArray()
       const freshByName = Object.fromEntries(currentData.map(c => [c.productName, c]))
 
-      // Process each unique base name only once. Multiple variants share one cost entry.
       const processedBaseNames = new Set<string>()
 
       let badEntries = 0
@@ -121,7 +114,6 @@ function CostManagementModal({
           : draft.unitCostText.trim()
         if (!hasData) continue
 
-        // Validate numeric input — skip entries that have text but parse to invalid/zero values
         if (draft.isPerCase) {
           const cp = parseFloat(draft.casePriceText)
           const upc = parseInt(draft.unitsPerCaseText, 10)
@@ -287,7 +279,6 @@ export default function ProfitView() {
     const stats = cachedStats
     const byName = Object.fromEntries(costData.map((c: ProductCostData) => [c.productName, c]))
     const byNameLower = Object.fromEntries(costData.map((c: ProductCostData) => [c.productName.toLowerCase().trim(), c]))
-    // Build case-insensitive catalogue price lookup (selling price from Square).
     const catPriceLower: Record<string, number> = {}
     for (const cp of catalogueProducts) {
       if (cp.price !== null && cp.price > 0) {
@@ -305,7 +296,6 @@ export default function ProfitView() {
       return catPriceLower[strippedBase] ?? null
     }
     function stripStar(n: string) { return n.startsWith('*') ? n.slice(1).trim() : n }
-    // Normalizes product names for fuzzy matching: strips size/variant suffixes
     function normalizeForLookup(n: string): string[] {
       const clean = stripStar(n).trim()
       const base = baseName(clean)
@@ -324,7 +314,6 @@ export default function ProfitView() {
     }
     const rows: ProfitRow[] = stats.map(p => {
       const c = lookupCost(p.name)
-      // Use catalogue price as selling price if available; fall back to derived avg price.
       const sellingPrice = lookupCataloguePrice(p.name) ?? p.avgPrice
       if (c) {
         const euc = effectiveUnitCost(c)
@@ -364,19 +353,15 @@ export default function ProfitView() {
   const totalProfit = useMemo(() => profitRows.reduce((s, r) => s + (r.totalProfit ?? 0), 0), [profitRows])
   const coveredRevenue = useMemo(() => profitRows.filter(r => r.hasCostData).reduce((s, r) => s + r.totalRevenue, 0), [profitRows])
   const overallMargin = coveredRevenue > 0 ? (totalProfit / coveredRevenue) * 100 : 0
-  // Shared gross profit — matches Dashboard StatCard exactly (uses same lookupUnitCost logic)
   const sharedGP = useMemo(
     () => computeGrossProfit(cachedStats, costData, totalRevenue),
     [cachedStats, costData, totalRevenue],
   )
-  // Processing fees from Payments API (stored in cents on each transaction)
   const totalProcessingFees = useMemo(
     () => transactions.reduce((s, t) => s + (t.processingFee ?? 0), 0) / 100,
     [transactions],
   )
   const hasProcessingFees = totalProcessingFees > 0
-  // Refunds from the Refunds API (cents), scoped to the date span of the visible
-  // transactions so they line up with the revenue shown.
   const totalRefunds = useMemo(() => {
     if (refunds.length === 0 || transactions.length === 0) return 0
     let min = Infinity, max = -Infinity

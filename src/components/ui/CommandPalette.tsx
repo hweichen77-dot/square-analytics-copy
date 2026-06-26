@@ -59,7 +59,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         className="w-full max-w-lg mx-4 bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700">
           <svg className="w-4 h-4 text-slate-200 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -74,7 +73,6 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           <kbd className="text-[10px] text-slate-300 border border-slate-700 px-1.5 py-0.5">esc</kbd>
         </div>
 
-        {/* Results */}
         <div className="max-h-80 overflow-y-auto">
           {results.length === 0 ? (
             <p className="px-4 py-6 text-sm text-slate-200 text-center">No products found</p>

@@ -8,12 +8,10 @@ function sanitize(v: string): string {
 export function exportQuickBooksPL(data: AccountantReportData): void {
   const rows: (string | number | null)[][] = []
 
-  // Title block
   rows.push(["Walley's Analytics — Profit & Loss"])
   rows.push([data.dateRange])
   rows.push([])
 
-  // INCOME
   rows.push(["INCOME", null])
   rows.push(["  Gross Sales", data.totalRevenue])
   if (data.refundRevenue !== 0) {
@@ -22,7 +20,6 @@ export function exportQuickBooksPL(data: AccountantReportData): void {
   rows.push(["Total Income", data.netRevenue])
   rows.push([])
 
-  // COGS (only if cost data present)
   if (data.totalCOGS !== null) {
     rows.push(["COST OF GOODS SOLD", null])
     rows.push(["  Cost of Goods Sold", data.totalCOGS])
@@ -35,18 +32,15 @@ export function exportQuickBooksPL(data: AccountantReportData): void {
     rows.push([])
   }
 
-  // NET INCOME
   rows.push(["NET INCOME", data.grossProfit ?? data.netRevenue])
   rows.push([])
 
-  // Payment breakdown
   rows.push(["PAYMENT BREAKDOWN", "Amount", "% of Revenue", "Transactions"])
   for (const p of data.paymentBreakdown) {
     rows.push([`  ${p.method}`, p.revenue, `${p.pct.toFixed(1)}%`, p.count])
   }
   rows.push([])
 
-  // Top products
   if (data.topProducts.length > 0) {
     const hasCOGS = data.topProducts.some(p => p.totalCost !== null)
     if (hasCOGS) {

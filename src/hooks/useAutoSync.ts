@@ -3,13 +3,12 @@ import { useAuthStore } from '../store/authStore'
 import { runSquareSync, isSyncInFlight } from '../engine/squareSyncEngine'
 import { useToastStore } from '../store/toastStore'
 
-const MIN_FOCUS_SYNC_GAP_MS = 15 * 60 * 1000 // 15 min minimum between focus-triggered syncs
+const MIN_FOCUS_SYNC_GAP_MS = 15 * 60 * 1000
 
 export function useAutoSync() {
   const { autoSyncEnabled, syncIntervalMinutes, accessToken, locationID, lastSyncDate } = useAuthStore()
   const { show } = useToastStore()
 
-  // Interval-based sync
   useEffect(() => {
     if (!autoSyncEnabled || !accessToken || !locationID) return
 
@@ -25,7 +24,6 @@ export function useAutoSync() {
     return () => clearInterval(id)
   }, [autoSyncEnabled, syncIntervalMinutes, accessToken, locationID, show])
 
-  // Focus-triggered sync: fires when the window regains focus if enough time has passed
   useEffect(() => {
     if (!autoSyncEnabled || !accessToken || !locationID) return
 

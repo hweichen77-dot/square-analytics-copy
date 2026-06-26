@@ -24,8 +24,6 @@ function estimateShiftHours(txs: SalesTransaction[]): number {
   return total
 }
 
-// Sum real shift hours from completed shifts (those with an endAt). Open shifts
-// (no endAt) are skipped since their duration is unknown.
 function realShiftHours(shifts: StoredShift[]): number {
   let total = 0
   for (const s of shifts) {
@@ -44,7 +42,6 @@ export default function StaffView() {
   const wages = useStaffWages()
   const shifts = useShifts()
   const wageMap = useMemo(() => new Map(wages.map(w => [w.staffName, w.hourlyWage])), [wages])
-  // Group completed shifts by resolved staff name for real-hours lookup.
   const shiftsByStaff = useMemo(() => {
     const map: Record<string, StoredShift[]> = {}
     for (const s of shifts) {
@@ -56,7 +53,6 @@ export default function StaffView() {
     return map
   }, [shifts])
   const totalRevenue = useMemo(() => staffStats.reduce((s, x) => s + x.totalSales, 0), [staffStats])
-  // True when at least one staff member has real shift data driving their hours.
   const hasAnyRealHours = useMemo(
     () => staffStats.some(s => (shiftsByStaff[s.name] ?? []).some(sh => sh.endAt)),
     [staffStats, shiftsByStaff],
@@ -65,7 +61,6 @@ export default function StaffView() {
   const roiData = useMemo(() => {
     return staffStats.map(s => {
       const staffTxs = transactions.filter(t => (t.staffName.trim() || 'Unknown') === s.name)
-      // Prefer real shift hours from the Labor API; fall back to the tx-based estimate.
       const staffShifts = shiftsByStaff[s.name] ?? []
       const real = realShiftHours(staffShifts)
       const usingReal = real > 0
@@ -78,7 +73,6 @@ export default function StaffView() {
     })
   }, [staffStats, transactions, wageMap, shiftsByStaff])
 
-  // Build per-staff transaction lists for the expanded view.
   const txByStaff = useMemo(() => {
     const map: Record<string, typeof transactions> = {}
     for (const tx of transactions) {
@@ -86,7 +80,6 @@ export default function StaffView() {
       if (!map[name]) map[name] = []
       map[name].push(tx)
     }
-    // Sort each list newest first.
     for (const name of Object.keys(map)) {
       map[name].sort((a, b) => b.date.getTime() - a.date.getTime())
     }
@@ -117,7 +110,6 @@ export default function StaffView() {
     <div className="space-y-6">
       <h1 className="text-xl font-bold text-slate-100">Staff Performance</h1>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4">
           <p className="text-xs text-slate-200">Staff Members</p>
@@ -133,7 +125,6 @@ export default function StaffView() {
         </div>
       </div>
 
-      {/* Leaderboard */}
       {staffStats.length > 0 && (
         <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-700/50">
@@ -178,7 +169,6 @@ export default function StaffView() {
         </div>
       )}
 
-      {/* ROI Table */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-700/50 flex items-center justify-between">
           <div>
@@ -291,7 +281,6 @@ export default function StaffView() {
         </ResponsiveContainer>
       </div>
 
-      {/* Staff breakdown with expandable transaction rows */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-700/50">
           <h2 className="text-base font-semibold text-slate-100">Staff Breakdown</h2>
@@ -311,12 +300,10 @@ export default function StaffView() {
                   className="w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-700/50 transition-colors text-left"
                   onClick={() => setExpandedStaff(isExpanded ? null : staff.name)}
                 >
-                  {/* Avatar */}
                   <div className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center text-white text-sm font-bold shrink-0`}>
                     {initials(staff.name)}
                   </div>
 
-                  {/* Name + share bar */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-slate-100 text-sm">{staff.name}</p>
@@ -335,7 +322,6 @@ export default function StaffView() {
                     </div>
                   </div>
 
-                  {/* Stats */}
                   <div className="hidden sm:flex items-center gap-8 shrink-0">
                     <div className="text-right">
                       <p className="text-xs text-slate-200">Transactions</p>
@@ -351,11 +337,9 @@ export default function StaffView() {
                     </div>
                   </div>
 
-                  {/* Expand chevron */}
                   <span className="text-slate-200 text-sm shrink-0">{isExpanded ? '▲' : '▼'}</span>
                 </button>
 
-                {/* Expanded transactions */}
                 {isExpanded && (
                   <div className="border-t border-slate-700/50 bg-slate-900">
                     <div className="px-5 py-3">

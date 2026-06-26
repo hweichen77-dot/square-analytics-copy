@@ -103,8 +103,6 @@ function buildProfiles(transactions: SalesTransaction[]): {
     cohorts[key].add(cid)
   }
 
-  // Latest month we have any data for — cohorts whose offset month exceeds this
-  // haven't had a chance to return yet, so exclude them from the denominator.
   const allMonths = Object.values(byCustomer).flat().map(tx => format(tx.date, 'yyyy-MM'))
   const sortedMonths = allMonths.sort()
   const latestDataMonth = sortedMonths.length ? sortedMonths[sortedMonths.length - 1] : ''
@@ -117,7 +115,6 @@ function buildProfiles(transactions: SalesTransaction[]): {
         ? `${y + Math.floor((m + offset - 1) / 12)}-${String(((m + offset - 1) % 12) + 1).padStart(2, '0')}`
         : `${y}-${String(m + offset).padStart(2, '0')}`
 
-      // Only count this cohort if the target month has already occurred in our data
       if (tMonth > latestDataMonth) continue
 
       let returned = 0
@@ -189,7 +186,6 @@ export default function CustomerView() {
     const totalRev = profiles.reduce((s, p) => s + p.totalSpent, 0)
     if (totalRev === 0) return null
     const top20n = Math.max(1, Math.ceil(profiles.length * 0.2))
-    // profiles are sorted by totalSpent desc from buildProfiles
     const top20rev = profiles.slice(0, top20n).reduce((s, p) => s + p.totalSpent, 0)
     return { pct: (top20rev / totalRev) * 100, count: top20n, total: profiles.length }
   }, [profiles])

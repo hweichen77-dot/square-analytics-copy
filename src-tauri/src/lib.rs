@@ -53,7 +53,6 @@ async fn wait_for_oauth_code(
             })
             .collect();
 
-        // Validate CSRF state
         let returned_state = params.get("state").map(String::as_str).unwrap_or("");
         if !expected_state.is_empty() && returned_state != expected_state {
             return Err(format!(

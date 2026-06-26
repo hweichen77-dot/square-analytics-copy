@@ -39,9 +39,6 @@ class WalleysDB extends Dexie {
       catalogueProducts: '++id, &name, sku, category, enabled',
     })
 
-    // Version 2: retroactively normalize paymentMethod for cash transactions.
-    // Old imports stored raw card reference codes (e.g. "A3KX9P2QM") directly
-    // instead of "Cash". Run the same heuristic from csvParser to fix them.
     this.version(2).stores({
       salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
       categoryOverrides: '++id, &productName',
@@ -63,7 +60,6 @@ class WalleysDB extends Dexie {
       })
     })
 
-    // Version 3: add itemName + variationName fields to catalogueProducts
     this.version(3).stores({
       salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
       categoryOverrides: '++id, &productName',
@@ -82,7 +78,6 @@ class WalleysDB extends Dexie {
       })
     })
 
-    // Version 4: add opexEntries table for manual operating expense tracking.
     this.version(4).stores({
       salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
       categoryOverrides: '++id, &productName',
@@ -94,7 +89,6 @@ class WalleysDB extends Dexie {
       opexEntries: '++id, month, category',
     })
 
-    // Version 5: add staffWages table for Staff ROI feature.
     this.version(5).stores({
       salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
       categoryOverrides: '++id, &productName',
@@ -107,9 +101,6 @@ class WalleysDB extends Dexie {
       staffWages: '++id, &staffName',
     })
 
-    // Version 6: add Payments API enrichment fields (processingFee, paymentSourceType,
-    // cardBrand, cardLastFour) to salesTransactions. All fields are optional so no
-    // data migration is required — existing rows simply lack these fields.
     this.version(6).stores({
       salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
       categoryOverrides: '++id, &productName',
@@ -121,10 +112,8 @@ class WalleysDB extends Dexie {
       opexEntries: '++id, month, category',
       staffWages: '++id, &staffName',
     }).upgrade(_tx => {
-      // No data migration needed — new fields are optional and default to undefined
     })
 
-    // Version 7: add refunds + shifts tables for Square Refunds and Labor/Shifts APIs.
     this.version(7).stores({
       salesTransactions: '++id, &transactionID, date, staffName, paymentMethod, dayOfWeek, hour',
       categoryOverrides: '++id, &productName',

@@ -14,8 +14,6 @@ export interface SyncStatus {
   productsAdded: number
 }
 
-// Module-level in-flight promise shared between auto-sync and manual sync.
-// Prevents concurrent syncs that would race on lastSyncDate and duplicate fetches.
 let _syncInFlight: Promise<void> | null = null
 
 export function isSyncInFlight(): boolean {
@@ -23,15 +21,10 @@ export function isSyncInFlight(): boolean {
 }
 
 function orderToTransaction(order: SquareOrder, employeeMap: Record<string, string> = {}): Omit<SalesTransaction, 'id'> | null {
-  // Prefer closed_at (when the order was finalized) over created_at for accurate date bucketing.
-  // Square's own dashboard uses closed_at for daily totals on COMPLETED orders.
   const rawDate = order.closed_at ?? order.created_at
   const date = new Date(rawDate)
   if (isNaN(date.getTime())) return null
 
-  // net_amounts.total_money is the authoritative post-discount, post-tip, post-refund net total.
-  // Fall back to total_money (pre-tip gross) only when net_amounts is absent (legacy orders).
-  // When return_amounts is present without net_amounts, subtract the refund manually.
   let amountCents: number
   if (order.net_amounts?.total_money?.amount != null) {
     amountCents = order.net_amounts.total_money.amount
@@ -55,9 +48,6 @@ function orderToTransaction(order: SquareOrder, employeeMap: Record<string, stri
     const fullName = isDefault ? li.name : `${li.name} (${varName})`
     descParts.push(`${qty} x ${fullName}`)
 
-    // gross_sales_money = base_price * qty (before order-level discounts/tips).
-    // Used for proportional revenue allocation — distributes order-level discounts
-    // in proportion to each item's gross price rather than splitting evenly by qty.
     const grossCents = li.gross_sales_money?.amount ?? li.base_price_money?.amount ?? null
     if (grossCents != null) {
       lineItemPrices.push({ name: fullName, qty, unitPrice: grossCents / qty / 100 })
@@ -93,7 +83,6 @@ function catalogueToProduct(
   if (!name) return []
 
   const variations = data.variations ?? []
-  // Resolve category name from the category ID → name map
   const category = data.category_id ? (categoryMap[data.category_id] ?? '') : ''
   const common = {
     category,
@@ -104,15 +93,9 @@ function catalogueToProduct(
   }
 
   if (variations.length === 0) {
-    // When a catalogue item has no variation objects, there is no variation ID to
-    // look up in the inventory counts response (which is keyed by variation ID, not
-    // item ID). Store squareItemID as empty string so the inventory lookup is a
-    // no-op rather than silently returning stale or mismatched inventory data.
     return [{ ...common, name, itemName: name, variationName: 'Regular', sku: '', price: null, squareItemID: '' }]
   }
 
-  // One product row per variation; squareItemID stores the variation ID for
-  // direct inventory lookup (invMap is keyed by catalog_object_id = variation ID).
   return variations.map(variation => {
     const varData = variation.item_variation_data
     const priceCents = varData?.price_money?.amount
@@ -120,7 +103,6 @@ function catalogueToProduct(
     const variationName = variantLabel.toLowerCase() === 'regular' || variations.length === 1
       ? 'Regular'
       : variantLabel
-    // Only suffix name if there are multiple variants and the label isn't "Regular"
     const displayName = variationName !== 'Regular' ? `${name} (${variationName})` : name
     const { itemName } = splitItemVariation(displayName)
     return {
@@ -148,8 +130,6 @@ export async function runSquareSync(
 async function _runSyncImpl(
   onStatus: (status: SyncStatus) => void,
 ): Promise<void> {
-  // Preemptively refresh if expiry is known and within 5 minutes.
-  // A value of 0 means expiry is unknown — skip to avoid unnecessary refresh calls.
   const { tokenExpiresAt } = useAuthStore.getState()
   if (tokenExpiresAt != null && tokenExpiresAt > 0 && tokenExpiresAt - Date.now() < 5 * 60 * 1000) {
     await refreshAccessToken()
@@ -157,7 +137,6 @@ async function _runSyncImpl(
 
   const { accessToken, locationID, daysBack, lastSyncDate } = useAuthStore.getState()
 
-  // Resolve employee IDs → display names
   const employeeMap: Record<string, string> = {}
   try {
     const members = await fetchTeamMembers(accessToken)
@@ -166,14 +145,11 @@ async function _runSyncImpl(
       if (name) employeeMap[m.id] = name
     }
   } catch {
-    // Team Members API is optional — sync continues without names if it fails
   }
 
   onStatus({ phase: 'orders', message: 'Fetching orders...', ordersAdded: 0, productsAdded: 0 })
 
   const endDate = new Date()
-  // Incremental: resume from last sync (minus 5 min overlap). Always honour daysBack —
-  // if the user increases it, or this is the first sync, start from the daysBack window.
   const daysBackStart = subDays(endDate, daysBack)
   const lastSyncMs = lastSyncDate ? new Date(new Date(lastSyncDate).getTime() - 5 * 60 * 1000) : null
   const startDate = lastSyncMs && lastSyncMs > daysBackStart ? lastSyncMs : daysBackStart
@@ -183,7 +159,6 @@ async function _runSyncImpl(
     return tx ? [tx] : []
   })
 
-  // Resolve customer IDs → display names (batch-retrieve, best-effort)
   const customerIDsToFetch = [...new Set(txRows.map(t => t.customerID).filter((id): id is string => !!id))]
   const customerMap: Record<string, string> = {}
   try {
@@ -193,7 +168,6 @@ async function _runSyncImpl(
       if (name) customerMap[c.id] = name
     }
   } catch {
-    // Non-fatal — sync continues without customer names
   }
   for (const tx of txRows) {
     if (tx.customerID && customerMap[tx.customerID]) {
@@ -201,8 +175,6 @@ async function _runSyncImpl(
     }
   }
 
-  // Enrich transactions with Payments API data: authoritative payment source type,
-  // processing fees, and card details. Best-effort — sync continues on failure.
   try {
     const payments = await fetchPayments(
       accessToken,
@@ -210,7 +182,6 @@ async function _runSyncImpl(
       startDate.toISOString(),
       endDate.toISOString(),
     )
-    // Payments are keyed by orderId — not all payments have an orderId (e.g. gift card top-ups)
     const paymentByOrderId = new Map(
       payments.filter(p => p.orderId).map(p => [p.orderId!, p]),
     )
@@ -223,10 +194,8 @@ async function _runSyncImpl(
       tx.cardLastFour = payment.cardDetails?.card?.last4
     }
   } catch {
-    // Payments API is optional — sync continues without fee/source-type data if it fails
   }
 
-  // Fetch refunds for the same window and store them. Best-effort — sync continues on failure.
   try {
     const refunds = await fetchRefunds(
       accessToken,
@@ -244,11 +213,8 @@ async function _runSyncImpl(
       reason: r.reason,
     })))
   } catch {
-    // Refunds API is optional — sync continues without refund data if it fails
   }
 
-  // Fetch labor shifts for the same window and store them with resolved staff names.
-  // Best-effort — sync continues on failure (Labor API requires a paid plan / permissions).
   try {
     const shifts = await fetchShifts(
       accessToken,
@@ -266,7 +232,6 @@ async function _runSyncImpl(
       hourlyWage: s.wage?.hourlyRate?.amount != null ? s.wage.hourlyRate.amount / 100 : undefined,
     })))
   } catch {
-    // Labor/Shifts API is optional — sync continues without shift data if it fails
   }
 
   const ordersAdded = await upsertTransactions(txRows)
@@ -274,7 +239,6 @@ async function _runSyncImpl(
   onStatus({ phase: 'catalogue', message: 'Fetching catalogue...', ordersAdded, productsAdded: 0 })
   const catObjects = await fetchCatalogue(accessToken)
 
-  // Build category ID → name map from CATEGORY objects returned alongside ITEMs
   const categoryMap: Record<string, string> = {}
   for (const obj of catObjects) {
     if (obj.type === 'CATEGORY' && obj.category_data?.name) {
@@ -290,8 +254,6 @@ async function _runSyncImpl(
   const invCounts = await fetchInventory(accessToken, locationID)
   const invMap = new Map(invCounts.map(c => [c.catalog_object_id, parseInt(c.quantity, 10)]))
 
-  // product.squareItemID now holds the Square variation ID, which is the same
-  // key that invMap uses (catalog_object_id from the inventory counts endpoint).
   for (const product of products) {
     const qty = invMap.get(product.squareItemID)
     if (qty != null) product.quantity = qty

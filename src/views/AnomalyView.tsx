@@ -71,7 +71,6 @@ export default function AnomalyView() {
         </p>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4 text-center">
           <p className="text-xl font-bold text-slate-100">{anomalies.length}</p>
@@ -93,7 +92,6 @@ export default function AnomalyView() {
         </div>
       ) : (
         <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
-          {/* Filter tabs */}
           <div className="flex border-b border-slate-700/50">
             {(['all', 'above', 'below'] as Filter[]).map(f => (
               <button
@@ -110,7 +108,6 @@ export default function AnomalyView() {
             ))}
           </div>
 
-          {/* Anomaly list */}
           {filtered.length === 0 ? (
             <div className="p-8 text-center text-sm text-slate-200">No {filter} anomalies.</div>
           ) : (

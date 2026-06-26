@@ -88,7 +88,6 @@ export default function BasketAnalysisView() {
         </p>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-slate-800/30 border border-slate-700/40 p-4 text-center">
           <p className="text-xl font-bold text-slate-100">{formatNumber(result.totalTransactions)}</p>
@@ -112,7 +111,6 @@ export default function BasketAnalysisView() {
         </div>
       ) : (
         <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
-          {/* Toolbar */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700/50">
             <input
               type="text"
@@ -139,7 +137,6 @@ export default function BasketAnalysisView() {
             </div>
           </div>
 
-          {/* Header */}
           <div className="flex items-center gap-3 px-4 py-2 bg-slate-900 border-b border-slate-700/50 text-xs text-slate-200 font-medium uppercase tracking-wide">
             <span className="w-5" />
             <span className="flex-1">Items</span>

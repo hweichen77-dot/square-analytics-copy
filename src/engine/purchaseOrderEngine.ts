@@ -32,8 +32,6 @@ export function generatePurchaseOrder(
   const items: PurchaseOrderItem[] = []
 
   for (const product of stats) {
-    // Weekly velocity: units sold ÷ weeks since first sale to today (minimum 1 week).
-    // Using today (not lastSoldDate) so quiet weeks are counted and bursts don't inflate velocity.
     const spanDays = (Date.now() - product.firstSoldDate.getTime()) / 86_400_000
     const weeksIntroduced = Math.max(1, spanDays / 7)
     const weeklyVelocity = product.totalUnitsSold / weeksIntroduced

@@ -1,7 +1,7 @@
 export interface TransactionLineItem {
   name: string
   qty: number
-  unitPrice: number  // gross unit price (base price × 1); used for proportional revenue allocation
+  unitPrice: number
 }
 
 export interface SalesTransaction {
@@ -16,52 +16,41 @@ export interface SalesTransaction {
   hour: number
   customerID?: string
   customerName?: string
-  // 'api' = Square Orders API sync, 'csv' = CSV/XLSX import, 'shopify' = Shopify CSV
-  // Used to detect CSV+API overlap that causes duplicate transaction counts
   source?: 'api' | 'csv' | 'shopify'
-  // Per-line-item prices from Square sync — enables exact per-product revenue (not even-split)
   lineItems?: TransactionLineItem[]
-  // Square financial detail columns (populated when CSV has them)
   grossSales?: number
   discounts?: number
   serviceCharges?: number
   partialRefunds?: number
   totalCollected?: number
-  fees?: number        // negative in Square CSV (e.g. -0.27); stored as-is
-  netTotal?: number    // totalCollected + fees
-  // Payments API enrichment (populated during Square sync when a matching payment is found)
-  processingFee?: number   // in cents (e.g. 27 = $0.27); from Payments API processingFee[0].amountMoney.amount
-  paymentSourceType?: string  // authoritative: 'CARD' | 'CASH' | 'WALLET' | 'BANK_ACCOUNT' | 'EXTERNAL'
-  cardBrand?: string       // e.g. 'VISA', 'MASTERCARD'
-  cardLastFour?: string    // last 4 digits of card
+  fees?: number
+  netTotal?: number
+  processingFee?: number
+  paymentSourceType?: string
+  cardBrand?: string
+  cardLastFour?: string
 }
 
-// Refund record from Square Refunds API (one row per refund). amount stored in
-// cents (matching Square's money model). staffName/teamMemberId left out — refunds
-// are aggregated against transactions by paymentId/createdAt date.
 export interface StoredRefund {
   id?: number
-  refundId: string        // Square refund id (unique)
+  refundId: string
   paymentId?: string
-  amount: number          // cents (positive value of the refund)
+  amount: number
   currency: string
   status: string
   createdAt: Date
   reason?: string
 }
 
-// Shift record from Square Labor/Shifts API. staffName is resolved from the
-// team member map during sync so StaffView can match by display name. Hours are
-// derived from startAt/endAt at read time (endAt may be null for open shifts).
 export interface StoredShift {
   id?: number
-  shiftId: string         // Square shift id (unique)
+  shiftId: string
   teamMemberId?: string
-  staffName: string       // resolved display name (may be '' if unresolved)
+  staffName: string
   startAt: Date
   endAt?: Date
   locationId?: string
-  hourlyWage?: number     // dollars, from shift wage if present
+  hourlyWage?: number
 }
 
 export const OPEX_CATEGORIES = [
@@ -81,7 +70,7 @@ export interface OpexEntry {
   name: string
   category: OpexCategory | string
   amount: number
-  month: string   // 'yyyy-MM'
+  month: string
   notes?: string
 }
 
@@ -128,11 +117,8 @@ export interface ProductBundle {
 
 export interface CatalogueProduct {
   id?: number
-  /** Full composite name: "Item Name (Variation)" — kept for backwards-compat with sales matching */
   name: string
-  /** Parent item name — "Ramune Soda" (without variation) */
   itemName: string
-  /** Variation label — "Strawberry", "Regular", etc. */
   variationName: string
   sku: string
   price: number | null
@@ -144,7 +130,6 @@ export interface CatalogueProduct {
   squareItemID: string
 }
 
-/** Parse any product name into { itemName, variationName } */
 export function splitItemVariation(name: string): { itemName: string; variationName: string } {
   const match = name.match(/^(.+)\s+\((.+)\)$/)
   if (match) return { itemName: match[1].trim(), variationName: match[2].trim() }
@@ -160,10 +145,6 @@ function stripLeadingAsterisk(name: string): string {
   return name.startsWith('*') ? name.slice(1).trim() : name
 }
 
-/**
- * CSV-aware comma splitter: respects double-quoted fields so that product names
- * containing commas (e.g. "Burger, Deluxe") are not incorrectly split.
- */
 function parseCSVLine(line: string): string[] {
   const result: string[] = []
   let current = ''
@@ -172,7 +153,6 @@ function parseCSVLine(line: string): string[] {
     const ch = line[i]
     if (ch === '"') {
       if (inQuotes && line[i + 1] === '"') {
-        // Escaped quote inside a quoted field
         current += '"'
         i++
       } else {
@@ -191,10 +171,6 @@ function parseCSVLine(line: string): string[] {
 
 export function parseProductItems(description: string): ProductItem[] {
   if (!description.trim()) return []
-  // When quantity prefixes are present (e.g. "2x Latte, 1x Croissant") split
-  // only on commas that are immediately followed by a qty marker so that product
-  // names with commas (e.g. "Cake, Small") are preserved.
-  // Otherwise use the CSV-aware splitter to honour quoted fields.
   const hasQtyPrefix = /^\s*\d+\s*[xX]\s+/.test(description)
   const parts = hasQtyPrefix
     ? description.split(/,\s*(?=\d+\s*[xX]\s+)/)
@@ -219,7 +195,6 @@ export function effectiveUnitCost(cost: ProductCostData): number {
   return cost.unitCost ?? 0
 }
 
-/** Shared fuzzy cost lookup used by both Dashboard and ProfitView. */
 export function lookupUnitCost(name: string, costData: ProductCostData[]): number | null {
   const byName: Record<string, ProductCostData> = {}
   const byNameLower: Record<string, ProductCostData> = {}

@@ -15,7 +15,6 @@ import type { ProductStats } from '../engine/analyticsEngine'
 
 function exportTransactionsCSV(transactions: SalesTransaction[]) {
   const headers = ['Date', 'Staff', 'Item', 'Net Sales', 'Payment Method', 'Customer']
-  // Prefix user-controlled strings starting with formula chars to prevent Excel injection
   const sanitize = (v: string) => /^[=+\-@\t\r]/.test(v) ? `'${v}` : v
   const escape = (v: string) => `"${sanitize(String(v)).replace(/"/g, '""')}"`
   const rows = transactions.map(t => [
@@ -38,9 +37,6 @@ function exportTransactionsCSV(transactions: SalesTransaction[]) {
   URL.revokeObjectURL(url)
 }
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 interface ItemGroup {
   itemName: string
   variations: ProductStats[]
@@ -83,9 +79,6 @@ function groupStats(stats: ProductStats[]): ItemGroup[] {
   }).sort((a, b) => b.totalRevenue - a.totalRevenue)
 }
 
-// ---------------------------------------------------------------------------
-// Trend badge
-// ---------------------------------------------------------------------------
 function TrendBadge({ trend }: { trend: ItemGroup['trend'] }) {
   if (trend === 'Growing') return (
     <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
@@ -102,9 +95,6 @@ function TrendBadge({ trend }: { trend: ItemGroup['trend'] }) {
   return <span className="text-xs text-slate-200">→</span>
 }
 
-// ---------------------------------------------------------------------------
-// Chevron
-// ---------------------------------------------------------------------------
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
@@ -117,9 +107,6 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-// ---------------------------------------------------------------------------
-// Main view
-// ---------------------------------------------------------------------------
 export default function InventoryView() {
   const { transactions, productStats: stats } = useAnalytics()
   const overrides     = useCategoryOverrides()
@@ -142,14 +129,12 @@ export default function InventoryView() {
     })
   }, [itemGroups, search, categoryFilter])
 
-  // -- Summary stats ----------------------------------------------------------
   const topItem       = itemGroups[0]
   const totalRevenue  = stats.reduce((s, p) => s + p.totalRevenue, 0)
   const totalUnits    = stats.reduce((s, p) => s + p.totalUnitsSold, 0)
   const growingCount  = itemGroups.filter(g => g.trend === 'Growing').length
   const slowCount     = stats.filter(p => isSlowMover(p)).length
 
-  // -- Category override -------------------------------------------------------
   async function setOverride(productName: string, category: string) {
     const existing = overrides.find((o: { productName: string }) => o.productName === productName)
     if (existing) await db.categoryOverrides.update(existing.id!, { category })
@@ -158,7 +143,6 @@ export default function InventoryView() {
     setCtxMenu(null)
   }
 
-  // -- Expand/collapse --------------------------------------------------------
   function toggleExpand(itemName: string) {
     setExpandedItems(prev => {
       const next = new Set(prev)
@@ -176,7 +160,6 @@ export default function InventoryView() {
     <div className="space-y-5" onClick={() => setCtxMenu(null)}>
       <h1 className="text-xl font-bold text-slate-100">Transactions</h1>
 
-      {/* Summary strip — fills dead space */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-slate-800/30 border border-slate-700/40 px-4 py-3">
           <p className="text-xl font-bold text-teal-400">{formatCurrency(totalRevenue)}</p>
@@ -205,7 +188,6 @@ export default function InventoryView() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
         <input
           type="text"
@@ -233,7 +215,6 @@ export default function InventoryView() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-slate-800/30 border border-slate-700/40 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -255,7 +236,6 @@ export default function InventoryView() {
 
                 return (
                   <Fragment key={group.itemName}>
-                    {/* ── Item row ── */}
                     <tr
                       className={`border-b border-slate-700/30 transition-colors ${
                         multiVar ? 'cursor-pointer hover:bg-slate-700/40' : 'cursor-pointer hover:bg-slate-700/30'
@@ -290,7 +270,6 @@ export default function InventoryView() {
                       <td className="px-4 py-3 text-center"><TrendBadge trend={group.trend} /></td>
                     </tr>
 
-                    {/* ── Variation rows ── */}
                     {isOpen && group.variations.map(v => {
                       const vt = parseTrend(v)
                       return (
@@ -332,7 +311,6 @@ export default function InventoryView() {
         )}
       </div>
 
-      {/* Context menu */}
       {ctxMenu && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setCtxMenu(null)} />
